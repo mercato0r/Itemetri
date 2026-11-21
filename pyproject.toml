@@ -1,0 +1,66 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "itemetri"
+version = "0.4.0"
+description = "Itemetri: analisis kualitas instrumen evaluasi pembelajaran, validitas, reliabilitas, tingkat kesukaran, dan daya pembeda."
+license = "MIT"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=2.0",
+    "scipy>=1.14",
+    "lxml>=5.3",
+    "charset-normalizer>=3.4",
+    "openpyxl>=3.1",
+    "jinja2>=3.1",
+    "typer>=0.15",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "python-multipart>=0.0.18",
+    "pywebview>=5.3",
+]
+
+[project.scripts]
+itemetri = "anates.cli.app:app"
+itemetri-desktop = "anates.desktop:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "hypothesis>=6.115",
+    "mypy>=1.13",
+    "ruff>=0.8",
+    "lxml-stubs>=0.5",
+    "types-openpyxl>=3.1",
+    "scipy-stubs>=1.14",
+    "httpx>=0.27",
+]
+packaging = [
+    "pyinstaller>=6.11",
+    "nuitka>=2.6",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/anates"]
+
+[tool.hatch.build.targets.sdist]
+only-include = ["src/anates", "tests", "packaging", "assets", "pyproject.toml", "README.md", "LICENSE"]
+
+[tool.mypy]
+strict = true
+warn_unreachable = true
+mypy_path = "src"
+packages = ["anates"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

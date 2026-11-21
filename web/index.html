@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='4' y='4' width='56' height='56' rx='14' fill='%231d4ed8'/%3E%3Crect x='14' y='34' width='8' height='16' rx='2' fill='%2393c5fd'/%3E%3Crect x='27' y='24' width='8' height='26' rx='2' fill='%23dbeafe'/%3E%3Crect x='40' y='15' width='8' height='35' rx='2' fill='%23ffffff'/%3E%3Cpath d='M16 25l8 7 19-16' fill='none' stroke='%2386efac' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
+    />
+    <script>
+      try {
+        var saved = localStorage.getItem("anates-color-scheme");
+        if (saved === "light" || saved === "dark") {
+          document.querySelector('meta[name="color-scheme"]').content = saved;
+        } else if (saved === "system") {
+          document.querySelector('meta[name="color-scheme"]').content = "light dark";
+        }
+      } catch (e) {}
+    </script>
+    <title>Itemetri - Analisis Kualitas Instrumen Evaluasi Pembelajaran</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

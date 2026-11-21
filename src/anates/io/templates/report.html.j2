@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }}</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --fg: #111827;
+      --muted: #374151;
+      --border: #1f2937;
+      --rule-light: #d1d5db;
+      --banner-bg: #f3f4f6;
+      --banner-border: #9ca3af;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      padding: 2rem;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    h1 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.5rem;
+    }
+    h2 {
+      margin: 2rem 0 0.5rem 0;
+      font-size: 1.125rem;
+    }
+    .mode-banner {
+      padding: 0.75rem 1rem;
+      margin: 0.75rem 0 1.5rem 0;
+      background: var(--banner-bg);
+      border-left: 4px solid var(--border);
+      border-top: 1px solid var(--banner-border);
+      border-right: 1px solid var(--banner-border);
+      border-bottom: 1px solid var(--banner-border);
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.5rem 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .meta-item {
+      border-bottom: 1px solid var(--rule-light);
+      padding-bottom: 0.25rem;
+    }
+    .meta-label {
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    .meta-value {
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.5rem 0 1.5rem 0;
+      font-variant-numeric: tabular-nums;
+    }
+    thead th {
+      border-top: 2px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 0.45rem 0.5rem;
+      text-align: left;
+      font-weight: 600;
+    }
+    tbody td {
+      border-bottom: 1px solid var(--rule-light);
+      padding: 0.35rem 0.5rem;
+    }
+    tbody tr:last-child td {
+      border-bottom: 2px solid var(--border);
+    }
+    th.num, td.num {
+      text-align: right;
+    }
+    .warnings {
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--banner-border);
+      background: var(--banner-bg);
+    }
+    @media print {
+      body {
+        padding: 0;
+        font-size: 11pt;
+      }
+      section {
+        break-inside: avoid;
+      }
+      thead {
+        display: table-header-group;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>{{ title }}</h1>
+      <div class="mode-banner">
+        <strong>CompatibilityMode:</strong> {{ analysis.options.mode.value }}
+        {% if analysis.exam.source_path %}
+        | <strong>Berkas:</strong> {{ analysis.exam.source_path }}
+        {% endif %}
+      </div>
+    </header>
+
+    <section aria-label="Ringkasan Tes">
+      <div class="meta-grid">
+        <div class="meta-item">
+          <div class="meta-label">Jenis Ujian</div>
+          <div class="meta-value">{{ "Pilihan Ganda" if is_mc else "Uraian" }}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Jumlah Subyek (N)</div>
+          <div class="meta-value">{{ analysis.exam.subject_count }}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Jumlah Butir (M)</div>
+          <div class="meta-value">{{ analysis.exam.item_count }}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Rata-rata</div>
+          <div class="meta-value">{{ analysis.scoring.mean | fmt(2) }}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Simpangan Baku</div>
+          <div class="meta-value">{{ analysis.scoring.std_dev | fmt(2) }}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Korelasi XY</div>
+          <div class="meta-value">{{ analysis.reliability.correlation_xy | fmt(2) }}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Reliabilitas Tes</div>
+          <div class="meta-value">{{ analysis.reliability.reliability_coefficient | fmt(2) }}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Alpha Cronbach (α)</div>
+          <div class="meta-value">{{ analysis.reliability.cronbach_alpha | fmt(2) }}</div>
+        </div>
+        {% if is_mc %}
+        <div class="meta-item">
+          <div class="meta-label">KR-20</div>
+          <div class="meta-value">{{ analysis.reliability.kr20 | fmt(2) }}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">KR-21</div>
+          <div class="meta-value">{{ analysis.reliability.kr21 | fmt(2) }}</div>
+        </div>
+        {% endif %}
+        <div class="meta-item">
+          <div class="meta-label">Kelompok Unggul/Asor (n)</div>
+          <div class="meta-value">{{ analysis.upper_lower.group_size }}</div>
+        </div>
+      </div>
+    </section>
+
+    {% if analysis.warnings %}
+    <section aria-label="Peringatan Data">
+      <h2>Peringatan Data</h2>
+      <div class="warnings">
+        <ul>
+          {% for warn in analysis.warnings %}
+          <li><strong>{{ warn.code }}:</strong> {{ warn.message }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </section>
+    {% endif %}
+
+    <section aria-label="Ringkasan Butir Soal">
+      <h2>Analisis Butir Soal</h2>
+      <table>
+        <thead>
+          <tr>
+            <th class="num">No</th>
+            <th class="num">Butir</th>
+            {% if is_mc %}
+            <th>Kunci</th>
+            {% else %}
+            <th class="num">Ideal</th>
+            <th class="num">t</th>
+            {% endif %}
+            <th class="num">DP (%)</th>
+            <th class="num">TK (%)</th>
+            <th>Kesukaran</th>
+            <th class="num">Korelasi (r)</th>
+            <th>Signifikansi</th>
+            <th class="num">r_corr</th>
+            <th>Sig. (r_corr)</th>
+            <th class="num">α(-j)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for dp in analysis.discrimination %}
+          {% set tk = analysis.difficulty[loop.index0] %}
+          {% set corr = analysis.correlations[loop.index0] %}
+          <tr>
+            <td class="num">{{ dp.item_index + 1 }}</td>
+            <td class="num">{{ dp.item_number }}</td>
+            {% if is_mc %}
+            <td>{{ analysis.exam.answer_key[dp.item_index] | upper }}</td>
+            {% else %}
+            <td class="num">{{ analysis.exam.ideal_scores[dp.item_index] | fmt(2) }}</td>
+            <td class="num">{{ analysis.essay_upper_lower[loop.index0].t_value | fmt(2) }}</td>
+            {% endif %}
+            <td class="num">{{ dp.index_percent | fmt(2) }}</td>
+            <td class="num">{{ tk.index_percent | fmt(2) }}</td>
+            <td>{{ tk.category.value if tk.category is not none else "-" }}</td>
+            <td class="num">{{ corr.correlation | fmt(3) }}</td>
+            <td>{{ corr.significance.value }}</td>
+            <td class="num">{{ corr.corrected_correlation | fmt(3) }}</td>
+            <td>{{ corr.corrected_significance.value if corr.corrected_significance is not none else "-" }}</td>
+            <td class="num">{{ corr.alpha_if_deleted | fmt(3) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    <section aria-label="Skor Subyek">
+      <h2>Skor Subyek</h2>
+      <table>
+        <thead>
+          <tr>
+            <th class="num">Urut</th>
+            <th>Nama Subyek</th>
+            {% if is_mc %}
+            <th class="num">Betul</th>
+            <th class="num">Salah</th>
+            <th class="num">Kosong</th>
+            <th class="num">Skor Akhir</th>
+            <th class="num">Skor Dibobot</th>
+            {% else %}
+            <th class="num">Kosong</th>
+            <th class="num">Skor Total</th>
+            {% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for idx in analysis.scoring.sorted_order %}
+          {% set subj = analysis.scoring.subjects[idx] %}
+          <tr>
+            <td class="num">{{ loop.index }}</td>
+            <td>{{ subj.name }}</td>
+            {% if is_mc %}
+            <td class="num">{{ subj.correct_count }}</td>
+            <td class="num">{{ subj.wrong_count }}</td>
+            <td class="num">{{ subj.blank_count }}</td>
+            <td class="num">{{ subj.raw_score | fmt(2) }}</td>
+            <td class="num">{{ subj.weighted_score | fmt(2) }}</td>
+            {% else %}
+            <td class="num">{{ subj.blank_count }}</td>
+            <td class="num">{{ subj.total_score | fmt(2) }}</td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

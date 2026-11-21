@@ -1,0 +1,159 @@
+:root {
+  --raw-page-light: #f6f7f9;
+  --raw-page-dark: #11161d;
+  --raw-panel-light: #ffffff;
+  --raw-panel-dark: #18202a;
+  --raw-subtle-light: #eef1f5;
+  --raw-subtle-dark: #212b38;
+  --raw-frozen-light: #e6edf7;
+  --raw-frozen-dark: #1d2c42;
+
+  --raw-ink-primary-light: #141b24;
+  --raw-ink-primary-dark: #f1f5f9;
+  --raw-ink-secondary-light: #475467;
+  --raw-ink-secondary-dark: #b0becb;
+
+  --raw-border-subtle-light: #d0d7e2;
+  --raw-border-subtle-dark: #334155;
+  --raw-border-strong-light: #64748b;
+  --raw-border-strong-dark: #8596aa;
+
+  --raw-accent-light: #1d4ed8;
+  --raw-accent-dark: #7cb3ff;
+  --raw-accent-ink-light: #ffffff;
+  --raw-accent-ink-dark: #0b1220;
+
+  --raw-ok-light: #166534;
+  --raw-ok-dark: #86efac;
+  --raw-ok-bg-light: #ecfdf3;
+  --raw-ok-bg-dark: #11281b;
+
+  --raw-warn-light: #9a3412;
+  --raw-warn-dark: #fdba74;
+  --raw-warn-bg-light: #fff7ed;
+  --raw-warn-bg-dark: #2e1c0e;
+
+  --raw-err-light: #b42318;
+  --raw-err-dark: #fca5a5;
+  --raw-err-bg-light: #fef3f2;
+  --raw-err-bg-dark: #2f1414;
+
+  --raw-scroll-track-light: #eef1f5;
+  --raw-scroll-track-dark: #18202a;
+  --raw-scroll-thumb-light: #64748b;
+  --raw-scroll-thumb-dark: #8596aa;
+
+  color-scheme: light dark;
+
+  --bg-page: var(--raw-page-light);
+  --bg-panel: var(--raw-panel-light);
+  --bg-subtle: var(--raw-subtle-light);
+  --bg-frozen: var(--raw-frozen-light);
+  --ink-primary: var(--raw-ink-primary-light);
+  --ink-secondary: var(--raw-ink-secondary-light);
+  --border-subtle: var(--raw-border-subtle-light);
+  --border-strong: var(--raw-border-strong-light);
+  --accent: var(--raw-accent-light);
+  --accent-ink: var(--raw-accent-ink-light);
+  --ok: var(--raw-ok-light);
+  --ok-bg: var(--raw-ok-bg-light);
+  --warn: var(--raw-warn-light);
+  --warn-bg: var(--raw-warn-bg-light);
+  --err: var(--raw-err-light);
+  --err-bg: var(--raw-err-bg-light);
+  --scroll-track: var(--raw-scroll-track-light);
+  --scroll-thumb: var(--raw-scroll-thumb-light);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --radius-cell: 4px;
+  --radius-control: 6px;
+  --radius-card: 8px;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+
+  &:has(> head > meta[name="color-scheme"][content="light"]) {
+    color-scheme: light;
+  }
+
+  &:has(> head > meta[name="color-scheme"][content="dark"]) {
+    color-scheme: dark;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(:has(> head > meta[name="color-scheme"][content="light"])) {
+    --bg-page: var(--raw-page-dark);
+    --bg-panel: var(--raw-panel-dark);
+    --bg-subtle: var(--raw-subtle-dark);
+    --bg-frozen: var(--raw-frozen-dark);
+    --ink-primary: var(--raw-ink-primary-dark);
+    --ink-secondary: var(--raw-ink-secondary-dark);
+    --border-subtle: var(--raw-border-subtle-dark);
+    --border-strong: var(--raw-border-strong-dark);
+    --accent: var(--raw-accent-dark);
+    --accent-ink: var(--raw-accent-ink-dark);
+    --ok: var(--raw-ok-dark);
+    --ok-bg: var(--raw-ok-bg-dark);
+    --warn: var(--raw-warn-dark);
+    --warn-bg: var(--raw-warn-bg-dark);
+    --err: var(--raw-err-dark);
+    --err-bg: var(--raw-err-bg-dark);
+    --scroll-track: var(--raw-scroll-track-dark);
+    --scroll-thumb: var(--raw-scroll-thumb-dark);
+  }
+}
+
+:root:has(> head > meta[name="color-scheme"][content="dark"]) {
+  --bg-page: var(--raw-page-dark);
+  --bg-panel: var(--raw-panel-dark);
+  --bg-subtle: var(--raw-subtle-dark);
+  --bg-frozen: var(--raw-frozen-dark);
+  --ink-primary: var(--raw-ink-primary-dark);
+  --ink-secondary: var(--raw-ink-secondary-dark);
+  --border-subtle: var(--raw-border-subtle-dark);
+  --border-strong: var(--raw-border-strong-dark);
+  --accent: var(--raw-accent-dark);
+  --accent-ink: var(--raw-accent-ink-dark);
+  --ok: var(--raw-ok-dark);
+  --ok-bg: var(--raw-ok-bg-dark);
+  --warn: var(--raw-warn-dark);
+  --warn-bg: var(--raw-warn-bg-dark);
+  --err: var(--raw-err-dark);
+  --err-bg: var(--raw-err-bg-dark);
+  --scroll-track: var(--raw-scroll-track-dark);
+  --scroll-thumb: var(--raw-scroll-thumb-dark);
+}
+
+@supports (color: light-dark(white, black)) {
+  :root {
+    --bg-page: light-dark(var(--raw-page-light), var(--raw-page-dark));
+    --bg-panel: light-dark(var(--raw-panel-light), var(--raw-panel-dark));
+    --bg-subtle: light-dark(var(--raw-subtle-light), var(--raw-subtle-dark));
+    --bg-frozen: light-dark(var(--raw-frozen-light), var(--raw-frozen-dark));
+    --ink-primary: light-dark(var(--raw-ink-primary-light), var(--raw-ink-primary-dark));
+    --ink-secondary: light-dark(var(--raw-ink-secondary-light), var(--raw-ink-secondary-dark));
+    --border-subtle: light-dark(var(--raw-border-subtle-light), var(--raw-border-subtle-dark));
+    --border-strong: light-dark(var(--raw-border-strong-light), var(--raw-border-strong-dark));
+    --accent: light-dark(var(--raw-accent-light), var(--raw-accent-dark));
+    --accent-ink: light-dark(var(--raw-accent-ink-light), var(--raw-accent-ink-dark));
+    --ok: light-dark(var(--raw-ok-light), var(--raw-ok-dark));
+    --ok-bg: light-dark(var(--raw-ok-bg-light), var(--raw-ok-bg-dark));
+    --warn: light-dark(var(--raw-warn-light), var(--raw-warn-dark));
+    --warn-bg: light-dark(var(--raw-warn-bg-light), var(--raw-warn-bg-dark));
+    --err: light-dark(var(--raw-err-light), var(--raw-err-dark));
+    --err-bg: light-dark(var(--raw-err-bg-light), var(--raw-err-bg-dark));
+    --scroll-track: light-dark(var(--raw-scroll-track-light), var(--raw-scroll-track-dark));
+    --scroll-thumb: light-dark(var(--raw-scroll-thumb-light), var(--raw-scroll-thumb-dark));
+  }
+}
+
+html {
+  accent-color: var(--accent);
+  scrollbar-color: var(--scroll-thumb) var(--scroll-track);
+}

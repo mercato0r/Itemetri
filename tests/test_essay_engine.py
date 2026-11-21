@@ -3,7 +3,7 @@ import math
 import pytest
 from scipy import stats
 
-from anates.domain import (
+from itemetri.domain import (
     AnalysisOptions,
     CompatibilityMode,
     EssayDifficultyScope,
@@ -11,7 +11,7 @@ from anates.domain import (
     EssaySubject,
     SignificanceLevel,
 )
-from anates.engine import analyze_essay
+from itemetri.engine import analyze_essay
 
 
 def _sample_essay_exam() -> EssayExam:

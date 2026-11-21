@@ -4,14 +4,14 @@ from pathlib import Path
 
 from lxml import etree
 
-from anates.domain.enums import ExamKind
-from anates.domain.errors import (
+from itemetri.domain.enums import ExamKind
+from itemetri.domain.errors import (
     DomainValidationError,
     IoError,
     ParseError,
     UnsupportedSchemaError,
 )
-from anates.domain.models import (
+from itemetri.domain.models import (
     AnaDocument,
     CachedScoreSummary,
     CachedSubjectScore,
@@ -25,8 +25,8 @@ from anates.domain.models import (
     MultipleChoiceSubject,
     ScoringWeights,
 )
-from anates.domain.types import OptionCount
-from anates.io.encoding import decode_bytes
+from itemetri.domain.types import OptionCount
+from itemetri.io.encoding import decode_bytes
 
 _XML_DECL_ENCODING_RE = re.compile(
     r"""^(<\?xml\b[^>]*?)\s+encoding\s*=\s*["'][^"']*["']([^>]*\?>)""",

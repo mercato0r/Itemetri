@@ -5,8 +5,8 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, PackageLoader, select_autoescape
 
-from anates.domain.enums import ExamKind
-from anates.domain.models import (
+from itemetri.domain.enums import ExamKind
+from itemetri.domain.models import (
     EssayAnalysis,
     ExamAnalysis,
     MultipleChoiceAnalysis,
@@ -84,7 +84,7 @@ def render_reliabel_txt(
 def _create_template_env() -> Environment:
     meipass = getattr(sys, "_MEIPASS", None)
     if isinstance(meipass, str):
-        frozen_dir = Path(meipass) / "anates" / "io" / "templates"
+        frozen_dir = Path(meipass) / "itemetri" / "io" / "templates"
         if frozen_dir.is_dir():
             return Environment(
                 loader=FileSystemLoader(str(frozen_dir)),
@@ -93,7 +93,7 @@ def _create_template_env() -> Environment:
                 lstrip_blocks=True,
             )
     return Environment(
-        loader=PackageLoader("anates.io", "templates"),
+        loader=PackageLoader("itemetri.io", "templates"),
         autoescape=select_autoescape(["html", "j2"]),
         trim_blocks=True,
         lstrip_blocks=True,

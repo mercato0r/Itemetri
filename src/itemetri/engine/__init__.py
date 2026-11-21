@@ -1,24 +1,24 @@
-from anates.engine.comparison import compare_modes
-from anates.engine.correlation import (
+from itemetri.engine.comparison import compare_modes
+from itemetri.engine.correlation import (
     LEGACY_CORRELATION_TABLE,
     compute_corrected_item_totals,
     compute_item_correlations,
     evaluate_corrected_significance,
     lookup_legacy_significance,
 )
-from anates.engine.difficulty import (
+from itemetri.engine.difficulty import (
     classify_difficulty,
     compute_essay_difficulty,
     compute_mc_difficulty,
 )
-from anates.engine.discrimination import (
+from itemetri.engine.discrimination import (
     compute_essay_discrimination,
     compute_mc_discrimination,
 )
-from anates.engine.distractor import classify_distractor_index, compute_distractors
-from anates.engine.merge import merge_exams
-from anates.engine.pipeline import analyze_essay, analyze_exam, analyze_multiple_choice
-from anates.engine.reliability import (
+from itemetri.engine.distractor import classify_distractor_index, compute_distractors
+from itemetri.engine.merge import merge_exams
+from itemetri.engine.pipeline import analyze_essay, analyze_exam, analyze_multiple_choice
+from itemetri.engine.reliability import (
     compute_alpha_if_deleted,
     compute_cronbach_alpha,
     compute_essay_reliability,
@@ -27,21 +27,21 @@ from anates.engine.reliability import (
     compute_mc_reliability,
     interpret_reliability,
 )
-from anates.engine.samples import generate_diagnostic_mc_sample, generate_essay_demo_sample
-from anates.engine.scoring import (
+from itemetri.engine.samples import generate_diagnostic_mc_sample, generate_essay_demo_sample
+from itemetri.engine.scoring import (
     score_essay,
     score_multiple_choice,
     validate_essay_exam,
     validate_multiple_choice_exam,
 )
-from anates.engine.stats import (
+from itemetri.engine.stats import (
     banker_round_group_size,
     mean_and_std_dev,
     pearson_1d,
     pearson_matrix_vector,
 )
-from anates.engine.upper_lower import compute_essay_upper_lower, split_upper_lower
-from anates.engine.verdict import VerdictThresholds, evaluate_item_verdicts
+from itemetri.engine.upper_lower import compute_essay_upper_lower, split_upper_lower
+from itemetri.engine.verdict import VerdictThresholds, evaluate_item_verdicts
 
 __all__ = [
     "LEGACY_CORRELATION_TABLE",

@@ -1,7 +1,7 @@
 import math
 
-from anates.domain import AnalysisOptions, MultipleChoiceExam, MultipleChoiceSubject, OptionCount
-from anates.engine import analyze_multiple_choice, compute_distractors, score_multiple_choice
+from itemetri.domain import AnalysisOptions, MultipleChoiceExam, MultipleChoiceSubject, OptionCount
+from itemetri.engine import analyze_multiple_choice, compute_distractors, score_multiple_choice
 
 
 def test_distractor_upper_lower_partition_identity() -> None:

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from anates.domain import (
+from itemetri.domain import (
     AnalysisOptions,
     CompatibilityMode,
     DifficultyCategory,
@@ -11,13 +11,13 @@ from anates.domain import (
     MultipleChoiceExam,
     SignificanceLevel,
 )
-from anates.engine import (
+from itemetri.engine import (
     LEGACY_CORRELATION_TABLE,
     analyze_multiple_choice,
     classify_difficulty,
     lookup_legacy_significance,
 )
-from anates.io import read_ana
+from itemetri.io import read_ana
 
 
 def _load_mc(path: Path) -> MultipleChoiceExam:

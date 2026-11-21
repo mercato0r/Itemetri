@@ -2,7 +2,7 @@ import math
 
 import numpy as np
 
-from anates.domain import (
+from itemetri.domain import (
     CorrelationItem,
     DifficultyCategory,
     DifficultyItem,
@@ -13,7 +13,7 @@ from anates.domain import (
     ItemVerdictStatus,
     SignificanceLevel,
 )
-from anates.engine import evaluate_item_verdicts
+from itemetri.engine import evaluate_item_verdicts
 
 
 def _make_item(

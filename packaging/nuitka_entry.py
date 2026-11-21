@@ -1,4 +1,4 @@
-from anates.desktop import main
+from itemetri.desktop import main
 
 if __name__ == "__main__":
     raise SystemExit(main())

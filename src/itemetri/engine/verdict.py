@@ -2,8 +2,8 @@ import math
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from anates.domain.enums import ItemVerdictStatus, SignificanceLevel
-from anates.domain.models import (
+from itemetri.domain.enums import ItemVerdictStatus, SignificanceLevel
+from itemetri.domain.models import (
     CorrelationItem,
     DifficultyItem,
     DiscriminationItem,

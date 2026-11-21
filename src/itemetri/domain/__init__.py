@@ -1,4 +1,4 @@
-from anates.domain.enums import (
+from itemetri.domain.enums import (
     CompatibilityMode,
     DifficultyCategory,
     DistractorQuality,
@@ -8,7 +8,7 @@ from anates.domain.enums import (
     MergeAxis,
     SignificanceLevel,
 )
-from anates.domain.errors import (
+from itemetri.domain.errors import (
     AnalysisError,
     AnatesError,
     DomainValidationError,
@@ -16,7 +16,7 @@ from anates.domain.errors import (
     ParseError,
     UnsupportedSchemaError,
 )
-from anates.domain.models import (
+from itemetri.domain.models import (
     AnaDocument,
     AnalysisOptions,
     CachedScoreSummary,
@@ -52,7 +52,7 @@ from anates.domain.models import (
     UpperLowerSplit,
     ValidationIssue,
 )
-from anates.domain.types import (
+from itemetri.domain.types import (
     DegreesOfFreedom,
     ItemCount,
     OptionCount,

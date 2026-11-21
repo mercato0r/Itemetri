@@ -1,14 +1,14 @@
 from pathlib import Path
 
-from anates.domain import (
+from itemetri.domain import (
     AnalysisOptions,
     CompatibilityMode,
     EssayExam,
     EssaySubject,
     MultipleChoiceExam,
 )
-from anates.engine import analyze_essay, analyze_multiple_choice
-from anates.io import read_ana, render_html_report, render_reliabel_txt
+from itemetri.engine import analyze_essay, analyze_multiple_choice
+from itemetri.io import read_ana, render_html_report, render_reliabel_txt
 
 
 def test_reliabel_txt_byte_for_byte_match(

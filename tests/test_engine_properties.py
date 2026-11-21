@@ -4,7 +4,7 @@ import numpy as np
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from anates.domain import (
+from itemetri.domain import (
     AnalysisOptions,
     CompatibilityMode,
     DifficultyCategory,
@@ -14,7 +14,7 @@ from anates.domain import (
     MultipleChoiceSubject,
     OptionCount,
 )
-from anates.engine import (
+from itemetri.engine import (
     analyze_essay,
     analyze_multiple_choice,
     classify_difficulty,

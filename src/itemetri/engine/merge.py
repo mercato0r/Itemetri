@@ -1,8 +1,8 @@
 from pathlib import Path
 
-from anates.domain.enums import MergeAxis
-from anates.domain.errors import DomainValidationError
-from anates.domain.models import (
+from itemetri.domain.enums import MergeAxis
+from itemetri.domain.errors import DomainValidationError
+from itemetri.domain.models import (
     EssayExam,
     EssaySubject,
     Exam,
@@ -11,7 +11,7 @@ from anates.domain.models import (
     MultipleChoiceSubject,
     ValidationIssue,
 )
-from anates.domain.types import OptionCount
+from itemetri.domain.types import OptionCount
 
 
 def _merged_source_path(primary: Exam, explicit: str | None) -> str | None:

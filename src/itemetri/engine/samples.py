@@ -2,13 +2,13 @@ import math
 
 import numpy as np
 
-from anates.domain.models import (
+from itemetri.domain.models import (
     EssayExam,
     EssaySubject,
     MultipleChoiceExam,
     MultipleChoiceSubject,
 )
-from anates.domain.types import OptionCount
+from itemetri.domain.types import OptionCount
 
 
 def generate_diagnostic_mc_sample(seed: int = 20261120) -> MultipleChoiceExam:

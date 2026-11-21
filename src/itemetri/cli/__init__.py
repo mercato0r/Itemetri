@@ -1,3 +1,3 @@
-from anates.cli.app import app
+from itemetri.cli.app import app
 
 __all__ = ["app"]

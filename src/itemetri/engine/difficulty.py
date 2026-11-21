@@ -3,12 +3,12 @@ import math
 import numpy as np
 from numpy.typing import NDArray
 
-from anates.domain.enums import (
+from itemetri.domain.enums import (
     CompatibilityMode,
     DifficultyCategory,
     EssayDifficultyScope,
 )
-from anates.domain.models import DifficultyItem, EssayExam, EssayItemUpperLower
+from itemetri.domain.models import DifficultyItem, EssayExam, EssayItemUpperLower
 
 
 def classify_difficulty(

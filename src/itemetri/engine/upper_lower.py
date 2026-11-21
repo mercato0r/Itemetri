@@ -4,10 +4,10 @@ import numpy as np
 from numpy.typing import NDArray
 from scipy import stats
 
-from anates.domain.enums import CompatibilityMode
-from anates.domain.models import EssayExam, EssayItemUpperLower, UpperLowerSplit
-from anates.domain.types import SubjectCount
-from anates.engine.stats import banker_round_group_size, mean_and_std_dev
+from itemetri.domain.enums import CompatibilityMode
+from itemetri.domain.models import EssayExam, EssayItemUpperLower, UpperLowerSplit
+from itemetri.domain.types import SubjectCount
+from itemetri.engine.stats import banker_round_group_size, mean_and_std_dev
 
 
 def split_upper_lower(

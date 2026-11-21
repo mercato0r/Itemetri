@@ -1,6 +1,6 @@
 import numpy as np
 
-from anates.domain.models import (
+from itemetri.domain.models import (
     AnalysisOptions,
     EssayAnalysis,
     EssayExam,
@@ -11,22 +11,22 @@ from anates.domain.models import (
     MultipleChoiceExam,
     ValidationIssue,
 )
-from anates.engine.correlation import compute_item_correlations
-from anates.engine.difficulty import compute_essay_difficulty, compute_mc_difficulty
-from anates.engine.discrimination import (
+from itemetri.engine.correlation import compute_item_correlations
+from itemetri.engine.difficulty import compute_essay_difficulty, compute_mc_difficulty
+from itemetri.engine.discrimination import (
     compute_essay_discrimination,
     compute_mc_discrimination,
 )
-from anates.engine.distractor import compute_distractors
-from anates.engine.reliability import compute_essay_reliability, compute_mc_reliability
-from anates.engine.scoring import (
+from itemetri.engine.distractor import compute_distractors
+from itemetri.engine.reliability import compute_essay_reliability, compute_mc_reliability
+from itemetri.engine.scoring import (
     score_essay,
     score_multiple_choice,
     validate_essay_exam,
     validate_multiple_choice_exam,
 )
-from anates.engine.upper_lower import compute_essay_upper_lower, split_upper_lower
-from anates.engine.verdict import evaluate_item_verdicts
+from itemetri.engine.upper_lower import compute_essay_upper_lower, split_upper_lower
+from itemetri.engine.verdict import evaluate_item_verdicts
 
 
 def analyze_multiple_choice(

@@ -6,15 +6,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from anates import __version__
-from anates.domain import (
+from itemetri import __version__
+from itemetri.domain import (
     AnalysisError,
     AnatesError,
     DomainValidationError,
     IoError,
     ParseError,
 )
-from anates.web.api import build_api_router
+from itemetri.web.api import build_api_router
 
 
 def _has_ana_files(directory: Path) -> bool:
@@ -37,7 +37,7 @@ def _default_samples_dir() -> Path:
 def _default_static_dir() -> Path:
     meipass = getattr(sys, "_MEIPASS", None)
     if isinstance(meipass, str):
-        frozen_static = Path(meipass) / "anates" / "web" / "static"
+        frozen_static = Path(meipass) / "itemetri" / "web" / "static"
         if frozen_static.is_dir():
             return frozen_static
     return Path(__file__).resolve().parent / "static"

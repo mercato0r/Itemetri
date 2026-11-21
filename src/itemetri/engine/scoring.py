@@ -4,8 +4,8 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 
-from anates.domain.enums import CompatibilityMode
-from anates.domain.models import (
+from itemetri.domain.enums import CompatibilityMode
+from itemetri.domain.models import (
     AnalysisOptions,
     EssayExam,
     EssayScoringResult,
@@ -15,7 +15,7 @@ from anates.domain.models import (
     MultipleChoiceSubjectScore,
     ValidationIssue,
 )
-from anates.engine.stats import mean_and_std_dev
+from itemetri.engine.stats import mean_and_std_dev
 
 _ASTERISK = ord("*")
 _HASH = ord("#")

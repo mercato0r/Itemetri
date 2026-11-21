@@ -3,7 +3,7 @@ import math
 import numpy as np
 from numpy.typing import NDArray
 
-from anates.domain.types import SubjectCount
+from itemetri.domain.types import SubjectCount
 
 
 def mean_and_std_dev(values: NDArray[np.float64]) -> tuple[float, float]:

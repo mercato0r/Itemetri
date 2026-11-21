@@ -3,14 +3,14 @@ import math
 import numpy as np
 from numpy.typing import NDArray
 
-from anates.domain.enums import CompatibilityMode
-from anates.domain.models import (
+from itemetri.domain.enums import CompatibilityMode
+from itemetri.domain.models import (
     EssayExam,
     MultipleChoiceExam,
     ReliabilityResult,
     ReliabilitySubjectRow,
 )
-from anates.engine.stats import pearson_1d
+from itemetri.engine.stats import pearson_1d
 
 
 def _spearman_brown(r_xy: float, *, cast_float32: bool) -> float:

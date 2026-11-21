@@ -5,7 +5,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from anates.domain import (
+from itemetri.domain import (
     AnalysisOptions,
     CompatibilityDiff,
     CompatibilityMode,
@@ -21,7 +21,7 @@ from anates.domain import (
     OptionCount,
     ScoringWeights,
 )
-from anates.engine import interpret_reliability
+from itemetri.engine import interpret_reliability
 
 
 class ScoringWeightsPayload(BaseModel):

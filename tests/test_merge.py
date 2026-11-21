@@ -4,8 +4,8 @@ import pytest
 from fastapi.testclient import TestClient
 from typer.testing import CliRunner
 
-from anates.cli import app as cli_app
-from anates.domain import (
+from itemetri.cli import app as cli_app
+from itemetri.domain import (
     DomainValidationError,
     EssayExam,
     EssaySubject,
@@ -14,9 +14,9 @@ from anates.domain import (
     MultipleChoiceSubject,
     OptionCount,
 )
-from anates.engine import merge_exams
-from anates.io import read_ana
-from anates.web import create_app
+from itemetri.engine import merge_exams
+from itemetri.io import read_ana
+from itemetri.web import create_app
 
 
 def _mc_exam(

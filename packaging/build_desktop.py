@@ -40,8 +40,8 @@ def verify_wheel_and_sdist(dist_dir: Path) -> None:
     latest_wheel = wheels[-1]
     with zipfile.ZipFile(latest_wheel) as zf:
         names = zf.namelist()
-        assert "anates/web/static/index.html" in names, "Missing SPA index.html in wheel."
-        assert "anates/io/templates/report.html.j2" in names, "Missing report template in wheel."
+        assert "itemetri/web/static/index.html" in names, "Missing SPA index.html in wheel."
+        assert "itemetri/io/templates/report.html.j2" in names, "Missing report template in wheel."
         for forbidden_ext in (".exe", ".ana", ".ico"):
             leaks = [n for n in names if n.lower().endswith(forbidden_ext)]
             assert not leaks, f"Forbidden files leaked into wheel: {leaks}"
@@ -95,8 +95,8 @@ def build_nuitka_bundle(*, onefile: bool = False) -> None:
     dist_dir.mkdir(parents=True, exist_ok=True)
     entry_path = ROOT_DIR / "packaging" / "nuitka_entry.py"
     icon_path = ROOT_DIR / "assets" / "itemetri.ico"
-    static_src = ROOT_DIR / "src" / "anates" / "web" / "static"
-    templates_src = ROOT_DIR / "src" / "anates" / "io" / "templates"
+    static_src = ROOT_DIR / "src" / "itemetri" / "web" / "static"
+    templates_src = ROOT_DIR / "src" / "itemetri" / "io" / "templates"
     exe_name = "itemetri-desktop.exe" if sys.platform.startswith("win") else "itemetri-desktop"
 
     cmd = [
@@ -109,8 +109,8 @@ def build_nuitka_bundle(*, onefile: bool = False) -> None:
         "--assume-yes-for-downloads",
         f"--output-dir={dist_dir}",
         f"--output-filename={exe_name}",
-        f"--include-data-dir={static_src}=anates/web/static",
-        f"--include-data-dir={templates_src}=anates/io/templates",
+        f"--include-data-dir={static_src}=itemetri/web/static",
+        f"--include-data-dir={templates_src}=itemetri/io/templates",
         "--include-package=uvicorn",
         "--include-package=scipy.special",
         "--include-module=python_multipart",

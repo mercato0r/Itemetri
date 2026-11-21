@@ -23,8 +23,8 @@ dependencies = [
 ]
 
 [project.scripts]
-itemetri = "anates.cli.app:app"
-itemetri-desktop = "anates.desktop:main"
+itemetri = "itemetri.cli.app:app"
+itemetri-desktop = "itemetri.desktop:main"
 
 [dependency-groups]
 dev = [
@@ -43,16 +43,16 @@ packaging = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/anates"]
+packages = ["src/itemetri"]
 
 [tool.hatch.build.targets.sdist]
-only-include = ["src/anates", "tests", "packaging", "assets", "pyproject.toml", "README.md", "LICENSE"]
+only-include = ["src/itemetri", "tests", "packaging", "assets", "pyproject.toml", "README.md", "LICENSE"]
 
 [tool.mypy]
 strict = true
 warn_unreachable = true
 mypy_path = "src"
-packages = ["anates"]
+packages = ["itemetri"]
 
 [tool.ruff]
 target-version = "py311"

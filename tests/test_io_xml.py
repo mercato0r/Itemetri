@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from anates.domain import (
+from itemetri.domain import (
     AnalysisOptions,
     CompatibilityMode,
     EssayExam,
@@ -10,8 +10,8 @@ from anates.domain import (
     ParseError,
     UnsupportedSchemaError,
 )
-from anates.engine import analyze_essay, analyze_multiple_choice
-from anates.io import parse_ana_bytes, read_ana, serialize_ana, write_ana
+from itemetri.engine import analyze_essay, analyze_multiple_choice
+from itemetri.io import parse_ana_bytes, read_ana, serialize_ana, write_ana
 from tests.conftest import ALL_SAMPLE_ANA_NAMES
 
 

@@ -5,7 +5,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-from anates.domain.models import (
+from itemetri.domain.models import (
     AnaDocument,
     CompatibilityDiff,
     EssayAnalysis,

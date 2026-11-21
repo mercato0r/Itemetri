@@ -13,6 +13,7 @@ interface CardExportBarProps {
   spec: ExportableCardSpec;
   copyLabel?: string;
   downloadLabel?: string;
+  iconOnly?: boolean;
   onStatusMessage?: (msg: string) => void;
 }
 
@@ -20,6 +21,7 @@ export function CardExportBar({
   spec,
   copyLabel = "Salin",
   downloadLabel = "Unduh",
+  iconOnly = true,
   onStatusMessage,
 }: CardExportBarProps) {
   const [copied, setCopied] = useState(false);
@@ -90,14 +92,21 @@ export function CardExportBar({
     setBusyFmt(fmt);
     setMenuOpen(false);
     try {
-      if (fmt === "txt") {
-        downloadCardAsText(spec);
+      const res =
+        fmt === "txt"
+          ? await downloadCardAsText(spec)
+          : fmt === "pdf"
+            ? await downloadCardAsPdf(spec)
+            : await downloadCardAsImage(spec, fmt);
+      if (res.cancelled) {
+        onStatusMessage?.("Penyimpanan berkas dibatalkan.");
+      } else if (res.path) {
+        onStatusMessage?.(`Berkas disimpan ke ${res.path}.`);
+      } else if (fmt === "txt") {
         onStatusMessage?.(`Berkas teks itemetri-${spec.id}.txt diunduh.`);
       } else if (fmt === "pdf") {
-        await downloadCardAsPdf(spec);
         onStatusMessage?.(`Laporan PDF itemetri-${spec.id}.pdf diunduh.`);
       } else {
-        await downloadCardAsImage(spec, fmt);
         onStatusMessage?.(`Gambar itemetri-${spec.id}.${fmt} diunduh.`);
       }
     } catch (err) {
@@ -109,30 +118,37 @@ export function CardExportBar({
     }
   };
 
+  const copyTitle = copied ? "Tersalin" : copyLabel;
+  const downloadTitle = busyFmt ? `Membuat ${busyFmt.toUpperCase()}...` : downloadLabel;
+
   return (
     <div className="card-export-bar no-print">
       <button
         type="button"
-        className="btn btn-compact"
+        className={iconOnly ? "btn btn-compact btn-icon-only" : "btn btn-compact"}
         aria-label={`${copyLabel} ${spec.title}`}
+        title={copyTitle}
         onClick={() => void handleCopy()}
       >
         {copied ? <CheckIcon /> : <CopyIcon />}
-        <span>{copied ? "Tersalin" : copyLabel}</span>
+        {!iconOnly && <span>{copied ? "Tersalin" : copyLabel}</span>}
       </button>
 
       <button
         ref={downloadBtnRef}
         type="button"
-        className="btn btn-compact"
+        className={iconOnly ? "btn btn-compact btn-icon-only" : "btn btn-compact"}
         aria-label={`${downloadLabel} ${spec.title}`}
+        title={downloadTitle}
         aria-expanded={menuOpen}
         aria-haspopup="menu"
         disabled={busyFmt !== null}
         onClick={() => setMenuOpen((prev) => !prev)}
       >
         <DownloadIcon />
-        <span>{busyFmt ? `Membuat ${busyFmt.toUpperCase()}...` : downloadLabel}</span>
+        {!iconOnly && (
+          <span>{busyFmt ? `Membuat ${busyFmt.toUpperCase()}...` : downloadLabel}</span>
+        )}
         <ChevronDownIcon />
       </button>
 

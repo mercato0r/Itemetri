@@ -6,6 +6,22 @@ Format changelog mengikuti standar [Keep a Changelog](https://keepachangelog.com
 
 ---
 
+## [Unreleased]
+
+### Ditambahkan
+- **Dialog "Simpan Sebagai" (*Save As*) asli pada *web wrapper* desktop & peramban**:
+  - Menambahkan `_DesktopBridge` (`js_api` `save_file`) pada `src/itemetri/desktop.py` yang membuka dialog *Save As* Windows via `pywebview` (`create_file_dialog`), mengingat folder simpan terakhir, dan menulis berkas langsung ke lokasi pilihan pengguna.
+  - Menambahkan *helper* terpadu `saveBlobWithDialog` di `web/src/utils/fileSave.ts` untuk memilih jalur `window.pywebview.api.save_file` (desktop), `window.showSaveFilePicker` (peramban modern), atau *fallback* `<a download>`, lengkap dengan penanganan status pembatalan.
+- **Pembaruan manual pengguna & keluaran PDF**:
+  - Memperbarui `USER_MANUAL.md` dengan identitas **Itemetri**, pernyataan perangkat lunak *open source* independen berlisensi MIT yang tidak berafiliasi dengan pencipta ANATES (serta dukungan interoperabilitas `.ana`), `Daftar Isi` bertautan 36 *anchor*, dan mengonversinya menjadi `USER_MANUAL.pdf` (14 halaman A4).
+
+### Diubah
+- **Tombol ekspor per kartu menjadi ikon saja**: Menjadikan tombol salin dan unduh pada tiap kartu hasil (`web/src/components/CardExportBar.tsx`, kelas `.btn-icon-only` pada `web/src/styles/workspace.css`) tampil ringkas sebagai ikon dengan *tooltip* dan `aria-label`, sementara bar ringkasan atas di `web/src/components/ResultsCanvas.tsx` tetap mempertahankan label **Salin Semua** dan **Unduh Laporan**.
+- **Penyatuan jalur simpan berkas**: Mengalihkan seluruh unduhan hasil (`.txt`, `.pdf`, `.png`, `.jpg`) di `web/src/utils/resultExport.ts` dan aksi **Simpan Data** (`.ana`, `.xlsx`, `.csv`) di `web/src/App.tsx` melalui `saveBlobWithDialog`.
+- **Target *build* frontend**: Mengarahkan `build.outDir` di `web/vite.config.ts` ke `../src/itemetri/web/static`.
+
+---
+
 ## [0.4.0] - 2026-11-21
 
 ### Ditambahkan

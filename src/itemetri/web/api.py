@@ -9,8 +9,8 @@ from typing import Annotated, Any
 from fastapi import APIRouter, File, Form, HTTPException, Request, Response, UploadFile
 from pydantic import ValidationError
 
-from anates import __version__
-from anates.domain import (
+from itemetri import __version__
+from itemetri.domain import (
     AnalysisError,
     AnalysisOptions,
     CompatibilityMode,
@@ -23,14 +23,14 @@ from anates.domain import (
     MultipleChoiceExam,
     MultipleChoiceSubject,
 )
-from anates.engine import (
+from itemetri.engine import (
     analyze_exam,
     compare_modes,
     generate_diagnostic_mc_sample,
     generate_essay_demo_sample,
     merge_exams,
 )
-from anates.io import (
+from itemetri.io import (
     parse_ana_bytes,
     preview_tabular_bytes,
     read_ana,
@@ -45,7 +45,7 @@ from anates.io import (
     write_xlsx_analysis,
     write_xlsx_exam,
 )
-from anates.web.schemas import (
+from itemetri.web.schemas import (
     AnalysisOptionsPayload,
     AnalyzeRequest,
     CellPatchPayload,

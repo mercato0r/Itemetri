@@ -6,7 +6,7 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from anates.domain import (
+from itemetri.domain import (
     AnalysisOptions,
     CompatibilityMode,
     EssayExam,
@@ -15,14 +15,14 @@ from anates.domain import (
     MultipleChoiceSubject,
     OptionCount,
 )
-from anates.engine import (
+from itemetri.engine import (
     analyze_essay,
     analyze_multiple_choice,
     compute_cronbach_alpha,
     compute_kr20,
     interpret_reliability,
 )
-from anates.io import read_ana
+from itemetri.io import read_ana
 
 
 def test_mc_alpha_and_kr20_on_real_files(anates_dir: Path) -> None:

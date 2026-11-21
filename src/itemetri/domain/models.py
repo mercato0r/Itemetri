@@ -1,7 +1,7 @@
 import math
 from dataclasses import dataclass
 
-from anates.domain.enums import (
+from itemetri.domain.enums import (
     CompatibilityMode,
     DifficultyCategory,
     DistractorQuality,
@@ -10,8 +10,8 @@ from anates.domain.enums import (
     ItemVerdictStatus,
     SignificanceLevel,
 )
-from anates.domain.errors import DomainValidationError
-from anates.domain.types import ItemCount, OptionCount, SubjectCount
+from itemetri.domain.errors import DomainValidationError
+from itemetri.domain.types import ItemCount, OptionCount, SubjectCount
 
 
 @dataclass(frozen=True, slots=True)

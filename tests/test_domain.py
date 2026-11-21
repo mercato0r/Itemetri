@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from anates.domain import (
+from itemetri.domain import (
     AnalysisOptions,
     CompatibilityMode,
     DegreesOfFreedom,

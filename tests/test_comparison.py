@@ -2,9 +2,9 @@ from pathlib import Path
 
 import pytest
 
-from anates.domain import EssayExam, EssaySubject, MultipleChoiceExam
-from anates.engine import compare_modes
-from anates.io import read_ana
+from itemetri.domain import EssayExam, EssaySubject, MultipleChoiceExam
+from itemetri.engine import compare_modes
+from itemetri.io import read_ana
 
 
 def test_compare_modes_biologi_and_lat1(anates_dir: Path) -> None:

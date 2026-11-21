@@ -1,6 +1,6 @@
 from charset_normalizer import from_bytes
 
-from anates.domain.errors import ParseError
+from itemetri.domain.errors import ParseError
 
 
 def decode_bytes(raw: bytes, *, source: str | None = None) -> tuple[str, str]:

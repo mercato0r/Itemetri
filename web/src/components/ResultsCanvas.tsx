@@ -723,6 +723,7 @@ export function ResultsCanvas({
                 spec={allResultsSpec}
                 copyLabel="Salin Semua"
                 downloadLabel="Unduh Laporan"
+                iconOnly={false}
                 onStatusMessage={onStatusMessage}
               />
             )}

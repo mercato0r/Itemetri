@@ -3,8 +3,8 @@ import math
 import numpy as np
 from numpy.typing import NDArray
 
-from anates.domain.enums import DistractorQuality
-from anates.domain.models import (
+from itemetri.domain.enums import DistractorQuality
+from itemetri.domain.models import (
     DistractorItem,
     DistractorOption,
     MultipleChoiceExam,

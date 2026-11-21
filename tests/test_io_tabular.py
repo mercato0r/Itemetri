@@ -3,7 +3,7 @@ from pathlib import Path
 import openpyxl
 import pytest
 
-from anates.domain import (
+from itemetri.domain import (
     AnalysisOptions,
     CompatibilityMode,
     EssayExam,
@@ -12,8 +12,8 @@ from anates.domain import (
     MultipleChoiceExam,
     ParseError,
 )
-from anates.engine import analyze_essay, analyze_multiple_choice
-from anates.io import (
+from itemetri.engine import analyze_essay, analyze_multiple_choice
+from itemetri.io import (
     read_ana,
     read_csv_exam,
     read_xlsx_exam,

@@ -1,3 +1,5 @@
+import { saveBlobWithDialog, type SaveBlobResult } from "./fileSave";
+
 export interface ExportMetricItem {
   label: string;
   value: string;
@@ -201,17 +203,6 @@ function fallbackCopyPlainText(text: string): boolean {
     area.remove();
   }
   return ok;
-}
-
-function triggerDownload(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.append(anchor);
-  anchor.click();
-  anchor.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 async function rasterizeSvg(
@@ -778,16 +769,16 @@ export async function copyCardToClipboard(spec: ExportableCardSpec): Promise<str
   return "Teks hasil disalin ke clipboard.";
 }
 
-export function downloadCardAsText(spec: ExportableCardSpec): void {
+export async function downloadCardAsText(spec: ExportableCardSpec): Promise<SaveBlobResult> {
   const content = buildPlainText(spec);
   const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-  triggerDownload(blob, `itemetri-${spec.id}.txt`);
+  return saveBlobWithDialog(blob, `itemetri-${spec.id}.txt`);
 }
 
 export async function downloadCardAsImage(
   spec: ExportableCardSpec,
   format: "png" | "jpg",
-): Promise<void> {
+): Promise<SaveBlobResult> {
   const canvas = await renderSpecToSingleCanvas(spec);
   const mime = format === "png" ? "image/png" : "image/jpeg";
   const blob = await new Promise<Blob | null>((resolve) =>
@@ -796,14 +787,14 @@ export async function downloadCardAsImage(
   if (!blob) {
     throw new Error("Gagal membuat berkas gambar.");
   }
-  triggerDownload(blob, `itemetri-${spec.id}.${format}`);
+  return saveBlobWithDialog(blob, `itemetri-${spec.id}.${format}`);
 }
 
-export async function downloadCardAsPdf(spec: ExportableCardSpec): Promise<void> {
+export async function downloadCardAsPdf(spec: ExportableCardSpec): Promise<SaveBlobResult> {
   const pages = await renderSpecToPageCanvases(spec);
   const pdfBytes = buildPdfFromCanvases(pages);
   const pdfCopy = new Uint8Array(pdfBytes.byteLength);
   pdfCopy.set(pdfBytes);
   const blob = new Blob([pdfCopy.buffer], { type: "application/pdf" });
-  triggerDownload(blob, `itemetri-${spec.id}.pdf`);
+  return saveBlobWithDialog(blob, `itemetri-${spec.id}.pdf`);
 }

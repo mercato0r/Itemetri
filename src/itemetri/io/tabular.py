@@ -6,9 +6,9 @@ from typing import Any
 
 import openpyxl
 
-from anates.domain.enums import ExamKind
-from anates.domain.errors import DomainValidationError, IoError, ParseError
-from anates.domain.models import (
+from itemetri.domain.enums import ExamKind
+from itemetri.domain.errors import DomainValidationError, IoError, ParseError
+from itemetri.domain.models import (
     EssayAnalysis,
     EssayExam,
     EssaySubject,
@@ -18,8 +18,8 @@ from anates.domain.models import (
     MultipleChoiceExam,
     MultipleChoiceSubject,
 )
-from anates.domain.types import OptionCount
-from anates.io.encoding import decode_bytes
+from itemetri.domain.types import OptionCount
+from itemetri.io.encoding import decode_bytes
 
 _KEY_MARKERS = frozenset({"kunci", "key", "skor ideal", "skor_ideal", "ideal", "kunci jawaban"})
 

@@ -1,7 +1,7 @@
 import math
 
-from anates.domain.enums import CompatibilityMode
-from anates.domain.models import (
+from itemetri.domain.enums import CompatibilityMode
+from itemetri.domain.models import (
     AnalysisOptions,
     CompatibilityDiff,
     DifficultyCategoryChange,
@@ -10,7 +10,7 @@ from anates.domain.models import (
     ItemNumericDelta,
     SignificanceChange,
 )
-from anates.engine.pipeline import analyze_exam
+from itemetri.engine.pipeline import analyze_exam
 
 
 def _safe_delta(corrected: float, legacy: float) -> float:

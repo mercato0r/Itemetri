@@ -5,9 +5,9 @@ from pathlib import Path
 import openpyxl
 from fastapi.testclient import TestClient
 
-from anates.domain import EssayExam, ExamKind, MultipleChoiceExam
-from anates.io import preview_tabular_bytes, read_tabular_mapped_bytes
-from anates.web import create_app
+from itemetri.domain import EssayExam, ExamKind, MultipleChoiceExam
+from itemetri.io import preview_tabular_bytes, read_tabular_mapped_bytes
+from itemetri.web import create_app
 
 
 def _make_xlsx_bytes(rows: list[list[object]]) -> bytes:

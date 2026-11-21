@@ -4,7 +4,7 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   build: {
-    outDir: "../src/anates/web/static",
+    outDir: "../src/itemetri/web/static",
     emptyOutDir: true,
     target: "esnext",
   },

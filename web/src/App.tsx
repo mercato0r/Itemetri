@@ -19,6 +19,7 @@ import { ResultsCanvas } from "./components/ResultsCanvas";
 import { VariableSetupDrawer } from "./components/VariableSetupDrawer";
 import { useTheme } from "./hooks/useTheme";
 import { useUndoRedo } from "./hooks/useUndoRedo";
+import { saveBlobWithDialog } from "./utils/fileSave";
 import {
   addWorksheetColumn,
   addWorksheetRow,
@@ -318,15 +319,16 @@ export function App() {
 
   const handleSaveWorksheet = async (format: WorksheetSaveFormat) => {
     const { blob, filename } = await exportExamFile(compiled.exam, options, format);
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = filename;
-    document.body.append(anchor);
-    anchor.click();
-    anchor.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-    setLiveStatus(`Data lembar kerja ${filename} disimpan.`);
+    const res = await saveBlobWithDialog(blob, filename);
+    if (res.cancelled) {
+      setLiveStatus("Penyimpanan lembar kerja dibatalkan.");
+      return;
+    }
+    setLiveStatus(
+      res.path
+        ? `Data lembar kerja disimpan ke ${res.path}.`
+        : `Data lembar kerja ${filename} disimpan.`,
+    );
   };
 
   const handleResetBlank = () => {

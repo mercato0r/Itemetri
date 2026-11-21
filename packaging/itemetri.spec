@@ -34,8 +34,8 @@ hidden_imports = [
 ]
 
 datas = [
-    (str(ROOT_DIR / "src" / "anates" / "web" / "static"), "anates/web/static"),
-    (str(ROOT_DIR / "src" / "anates" / "io" / "templates"), "anates/io/templates"),
+    (str(ROOT_DIR / "src" / "itemetri" / "web" / "static"), "itemetri/web/static"),
+    (str(ROOT_DIR / "src" / "itemetri" / "io" / "templates"), "itemetri/io/templates"),
     *[
         item
         for item in collect_data_files("webview")
@@ -46,7 +46,7 @@ datas = [
 ]
 
 a = Analysis(
-    [str(ROOT_DIR / "src" / "anates" / "desktop.py")],
+    [str(ROOT_DIR / "src" / "itemetri" / "desktop.py")],
     pathex=[str(ROOT_DIR / "src")],
     binaries=[],
     datas=datas,

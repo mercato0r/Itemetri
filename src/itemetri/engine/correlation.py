@@ -4,16 +4,16 @@ import numpy as np
 from numpy.typing import NDArray
 from scipy import stats
 
-from anates.domain.enums import CompatibilityMode, SignificanceLevel
-from anates.domain.models import CorrelationItem
-from anates.domain.types import (
+from itemetri.domain.enums import CompatibilityMode, SignificanceLevel
+from itemetri.domain.models import CorrelationItem
+from itemetri.domain.types import (
     DegreesOfFreedom,
     ItemCount,
     SubjectCount,
     correlation_degrees_of_freedom,
 )
-from anates.engine.reliability import compute_alpha_if_deleted
-from anates.engine.stats import pearson_matrix_vector
+from itemetri.engine.reliability import compute_alpha_if_deleted
+from itemetri.engine.stats import pearson_matrix_vector
 
 # Critical Pearson r cutoffs from AnatesV4.exe 0x4b314c and Anates Uraian.exe 0x4dfefc.
 LEGACY_CORRELATION_TABLE: tuple[tuple[int, float, float], ...] = (

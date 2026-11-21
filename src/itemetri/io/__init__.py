@@ -1,6 +1,6 @@
-from anates.io.encoding import decode_bytes
-from anates.io.reports import render_html_report, render_reliabel_txt
-from anates.io.tabular import (
+from itemetri.io.encoding import decode_bytes
+from itemetri.io.reports import render_html_report, render_reliabel_txt
+from itemetri.io.tabular import (
     preview_tabular_bytes,
     read_csv_exam,
     read_tabular_mapped_bytes,
@@ -10,7 +10,7 @@ from anates.io.tabular import (
     write_xlsx_analysis,
     write_xlsx_exam,
 )
-from anates.io.xml_ana import parse_ana_bytes, read_ana, serialize_ana, write_ana
+from itemetri.io.xml_ana import parse_ana_bytes, read_ana, serialize_ana, write_ana
 
 __all__ = [
     "decode_bytes",

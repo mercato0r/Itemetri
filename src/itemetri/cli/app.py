@@ -6,20 +6,20 @@ from typing import Annotated
 import typer
 import uvicorn
 
-from anates.cli.formatting import (
+from itemetri.cli.formatting import (
     format_analysis_table,
     format_diff_table,
     format_inspect_summary,
     to_json_str,
 )
-from anates.domain.enums import (
+from itemetri.domain.enums import (
     CompatibilityMode,
     EssayDifficultyScope,
     ExamKind,
     MergeAxis,
 )
-from anates.domain.errors import AnalysisError, AnatesError, IoError
-from anates.domain.models import (
+from itemetri.domain.errors import AnalysisError, AnatesError, IoError
+from itemetri.domain.models import (
     AnaDocument,
     AnalysisOptions,
     CompatibilityDiff,
@@ -30,12 +30,12 @@ from anates.domain.models import (
     MultipleChoiceExam,
     ValidationIssue,
 )
-from anates.engine.comparison import compare_modes
-from anates.engine.merge import merge_exams
-from anates.engine.pipeline import analyze_exam
-from anates.engine.scoring import validate_essay_exam, validate_multiple_choice_exam
-from anates.io.reports import render_html_report, render_reliabel_txt
-from anates.io.tabular import (
+from itemetri.engine.comparison import compare_modes
+from itemetri.engine.merge import merge_exams
+from itemetri.engine.pipeline import analyze_exam
+from itemetri.engine.scoring import validate_essay_exam, validate_multiple_choice_exam
+from itemetri.io.reports import render_html_report, render_reliabel_txt
+from itemetri.io.tabular import (
     read_csv_exam,
     read_xlsx_exam,
     write_csv_analysis,
@@ -43,8 +43,8 @@ from anates.io.tabular import (
     write_xlsx_analysis,
     write_xlsx_exam,
 )
-from anates.io.xml_ana import read_ana, write_ana
-from anates.web import create_app
+from itemetri.io.xml_ana import read_ana, write_ana
+from itemetri.web import create_app
 
 
 class ModeChoice(StrEnum):

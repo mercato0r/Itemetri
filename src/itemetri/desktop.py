@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import importlib
 import json
 import multiprocessing
@@ -17,7 +18,7 @@ from typing import Any
 
 import uvicorn
 
-from anates.web import create_app
+from itemetri.web import create_app
 
 _LOCAL_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
@@ -127,6 +128,60 @@ def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+class _DesktopBridge:
+    """Bridge exposed to pywebview JavaScript as ``window.pywebview.api``."""
+
+    def __init__(self) -> None:
+        self._window: Any = None
+        self._last_dir: str = ""
+
+    def attach_window(self, window: Any) -> None:
+        """Bind the active pywebview window for native file dialogs."""
+        self._window = window
+
+    def save_file(
+        self,
+        filename: str,
+        data_base64: str,
+        file_types: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Prompt with a native Save As dialog and write decoded file bytes."""
+        if self._window is None:
+            return {
+                "saved": False,
+                "cancelled": False,
+                "error": "Jendela desktop belum siap.",
+            }
+
+        webview_mod: Any = importlib.import_module("webview")
+        file_dialog_enum = getattr(webview_mod, "FileDialog", None)
+        dialog_type = getattr(
+            file_dialog_enum,
+            "SAVE",
+            getattr(webview_mod, "SAVE_DIALOG", 30),
+        )
+        types_tuple = tuple(file_types) if file_types else ("Semua Berkas (*.*)",)
+
+        selected = self._window.create_file_dialog(
+            dialog_type,
+            directory=self._last_dir,
+            save_filename=filename,
+            file_types=types_tuple,
+        )
+        if not selected:
+            return {"saved": False, "cancelled": True}
+
+        target_raw = selected[0] if isinstance(selected, (list, tuple)) else str(selected)
+        if not target_raw:
+            return {"saved": False, "cancelled": True}
+
+        target_path = Path(target_raw)
+        self._last_dir = str(target_path.parent)
+        raw_bytes = base64.b64decode(data_base64)
+        target_path.write_bytes(raw_bytes)
+        return {"saved": True, "cancelled": False, "path": str(target_path)}
+
+
 def _try_run_webview(
     base_url: str,
     server: uvicorn.Server,
@@ -138,13 +193,16 @@ def _try_run_webview(
         return False
 
     _wait_for_health(base_url, server_thread)
-    webview_mod.create_window(
+    bridge = _DesktopBridge()
+    window = webview_mod.create_window(
         "Itemetri - Analisis Kualitas Instrumen Evaluasi Pembelajaran",
         base_url,
         width=1360,
         height=860,
         min_size=(920, 600),
+        js_api=bridge,
     )
+    bridge.attach_window(window)
     webview_mod.start()
     server.should_exit = True
     return True

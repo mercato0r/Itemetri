@@ -10,8 +10,8 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 from typer.testing import CliRunner
 
-from anates.cli import app as cli_app
-from anates.domain import (
+from itemetri.cli import app as cli_app
+from itemetri.domain import (
     AnalysisOptions,
     CompatibilityMode,
     EssayExam,
@@ -21,7 +21,7 @@ from anates.domain import (
     OptionCount,
     ScoringWeights,
 )
-from anates.engine import (
+from itemetri.engine import (
     analyze_essay,
     analyze_multiple_choice,
     compute_alpha_if_deleted,
@@ -30,13 +30,13 @@ from anates.engine import (
     compute_kr20,
     compute_kr21,
 )
-from anates.io import (
+from itemetri.io import (
     read_ana,
     render_html_report,
     write_csv_analysis,
     write_xlsx_analysis,
 )
-from anates.web import create_app
+from itemetri.web import create_app
 
 
 def _manual_pearson(x: np.ndarray, y: np.ndarray) -> float:

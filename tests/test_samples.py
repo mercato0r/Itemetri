@@ -1,7 +1,7 @@
 import math
 
-from anates.domain import ItemVerdictStatus
-from anates.engine import (
+from itemetri.domain import ItemVerdictStatus
+from itemetri.engine import (
     analyze_essay,
     analyze_multiple_choice,
     generate_diagnostic_mc_sample,

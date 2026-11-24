@@ -1,6 +1,6 @@
 # Changelog
 
-Semua perubahan penting pada proyek **Itemetri** (sebelumnya dikembangkan sebagai proyek tulis ulang ANATES Python) didokumentasikan di berkas ini.
+Semua perubahan penting pada proyek **Itemetri** — aplikasi web *open source* independen untuk analisis kualitas instrumen evaluasi pembelajaran dan psikometri modern (dengan dukungan interoperabilitas berkas `.ana`) — didokumentasikan di berkas ini.
 
 Format changelog mengikuti standar [Keep a Changelog](https://keepachangelog.com/id/1.1.0/) dan [Semantic Versioning](https://semver.org/). Catatan: entri `[0.1.0]` s.d. `[0.3.0]` mencerminkan tonggak pengembangan awal sebelum penyelarasan versi paket `0.4.0` pada `pyproject.toml` dan `web/package.json`.
 

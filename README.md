@@ -1,79 +1,77 @@
 # Itemetri
 
-**Analisis kualitas instrumen evaluasi pembelajaran, validitas, reliabilitas, tingkat kesukaran, dan daya pembeda.**
+Aplikasi web analisis kualitas butir soal dan reliabilitas tes berbasis Teori Tes Klasik (*Classical Test Theory*, CTT).
 
-Itemetri adalah aplikasi analisis psikometri lokal berbasis **TypeScript + React + Vite** (`web/`) dengan antarmuka bergaya jamovi (`@tanstack/react-virtual`). Seluruh komputasi statistik serta pembacaan/penulisan berkas (`.ana`/`.ANA`, `.csv`, `.xlsx`) berjalan langsung di peramban pengguna secara luring (*client-side*, tanpa backend server, tanpa CDN eksternal, dan tanpa WebAssembly), sehingga sangat ringan dan siap dipasang di *hosting* statis mana pun (Cloudflare Pages, cPanel, GitHub Pages) sekaligus aman di bawah kebijakan *Content Security Policy* ketat (`script-src 'self' 'unsafe-inline'`).
+Menilai kualitas soal ujian sering merepotkan karena data nilai tersebar di spreadsheet, sementara perangkat lunak analisis klasik seperti ANATES hanya berjalan di sistem lama. Itemetri menyatukan lembar kerja data dan panel hasil analisis dalam satu layar, sehingga guru, dosen, dan penyusun tes dapat memeriksa validitas, reliabilitas, tingkat kesukaran, serta daya pembeda soal langsung dari peramban. Seluruh pembacaan berkas dan perhitungan berjalan di perangkat pengguna tanpa mengirim data nilai atau kunci jawaban ke peladen luar.
 
----
+## Apa yang Bisa Dilakukan
 
-## Fitur Utama
+Itemetri mendukung pengolahan soal Pilihan Ganda (`PG`), Uraian (`Ur`), dan lembar kerja campuran `PG + Uraian`, lengkap dengan pembobotan PG opsional serta pemetaan indikator atau tujuan pembelajaran.
 
-### 1. Mesin Psikometri Mode Ganda (`legacy_anates` vs `standard_corrected`)
-- **Mode `standard_corrected` (bawaan)**: Rumus psikometri baku presisi `float64`, derajat bebas eksak `df = N - 2` pada uji-$t$ serta Welch-Satterthwaite pada Uraian, rentang kategori tingkat kesukaran kontigu tanpa celah, dan dukungan bobot Pilihan Ganda opsional.
-- **Mode `legacy_anates`**: Reproduksi perilaku komputasi historis kompatibel berkas `.ana`/`.ANA` (pembulatan *banker's rounding* 27%, tabel korelasi kritis 14 baris, belah dua Spearman-Brown, hingga celah kategori tingkat kesukaran) untuk audit arsip lama.
-- **Metrik & Diagnostik**:
-  - **Reliabilitas**: Belah Dua Spearman-Brown (`r_tt`), Alpha Cronbach ($\alpha$), KR-20, KR-21, dan Alpha jika butir dihapus ($\alpha_{-j}$).
-  - **Statistik Skor**: Rata-rata, Simpangan Baku, Min, Median, Maks, Skor Ideal Maksimum, dan Capaian Rata-rata (%).
-  - **Analisis Butir & Keputusan**: Daya Pembeda (`DP%`), Tingkat Kesukaran (`TK%`), Uji-$t$ kelompok unggul-asor Uraian, korelasi butir-total mentah (`r`) maupun terkoreksi (`r_corr`), evaluasi pengecoh (`IP%` + keberfungsian kelompok Atas vs Bawah), serta rekomendasi keputusan butir (`Terima`, `Revisi`, `Tolak`) dan deteksi dugaan salah kunci (`Salah Kunci?`).
+Untuk menjaga kecocokan dengan kebutuhan evaluasi masa kini maupun arsip lama, mesin hitung CTT tersedia dalam dua mode:
 
-### 2. Ruang Kerja Bergaya jamovi
-- **Kanvas Spreadsheet Bebas**: Langsung siap sunting (`15 x 10` sel awal beserta baris/kolom bayangan `phantom`), virtualisasi 2D, tempel blok dari Excel (`Ctrl+V`), seleksi rentang, `Undo`/`Redo`, dan deteksi otomatis kolom `PG` dan `Uraian`.
-- **Impor Fleksibel & Sampel Simulasi**: Membaca `.ana`/`.ANA`, `.csv`, dan `.xlsx` melalui pratinjau pemetaan kolom/baris, penggabungan dua berkas, serta dua sampel simulasi deterministik bawaan (`simulasi-pg-diagnostik` dan `simulasi-uraian`).
-- **Pemisahan Simpan Data & Ekspor Hasil**:
-  - **Simpan Data** di header menyimpan data lembar kerja (`.ana`, `.xlsx`, `.csv`).
-  - Setiap kartu hasil dan grafik menyediakan tombol ikon **Salin** (tabel HTML bergaya APA siap tempel ke Word/Docs + TSV ke Excel, atau PNG resolusi tinggi untuk grafik) dan **Unduh** (`Teks / Word (.txt)`, `Laporan PDF (.pdf)` multi-halaman A4, `Gambar PNG (.png)`, dan `Gambar JPG (.jpg)`), serta bar ringkasan atas **Salin Semua** dan **Unduh Laporan**.
+- Mode `standard_corrected` (bawaan) memakai rumus psikometri baku dengan presisi `float64`, derajat bebas eksak `df = N - 2` pada uji-$t$, koreksi Welch-Satterthwaite untuk soal uraian, dan rentang kategori tingkat kesukaran tanpa celah.
+- Mode `legacy_anates` mereproduksi perilaku hitung historis yang kompatibel dengan berkas `.ana`/`.ANA` (termasuk pembulatan *banker's rounding* 27%, tabel korelasi kritis 14 baris, dan belah dua Spearman-Brown) untuk keperluan audit arsip lama.
 
----
+Dari satu lembar kerja, aplikasi ini menghasilkan:
 
-## Cara Menjalankan & Membangun
+- Reliabilitas tes melalui Belah Dua Spearman-Brown (`r_tt`), Alpha Cronbach ($\alpha$), KR-20, KR-21, serta estimasi Alpha jika butir dihapus ($\alpha_{-j}$).
+- Statistik skor peserta berupa rata-rata, simpangan baku, nilai minimum, median, nilai maksimum, skor ideal maksimum, capaian rata-rata (%), dan ketuntasan KKM.
+- Analisis butir dan pengecoh yang mencakup daya pembeda (`DP%`), tingkat kesukaran (`TK%`), uji-$t$ kelompok unggul-asor uraian, korelasi butir-total mentah (`r`) dan terkoreksi (`r_corr`), indeks pengecoh (`IP%`), rekomendasi keputusan butir (`Terima`, `Revisi`, `Tolak`), serta deteksi dugaan salah kunci.
+- Uji *Pretest-Posttest* memakai *N-Gain* Hake dan uji-$t$ berpasangan.
+
+Di sisi antarmuka, ruang kerja bergaya jamovi menyediakan kanvas spreadsheet `15 x 10` yang dapat langsung disunting atau ditempel dari Excel (`Ctrl+V`), virtualisasi 2D, `Undo`/`Redo`, impor berkas `.ana`/`.ANA`, `.csv`, dan `.xlsx` dengan pratinjau pemetaan, penggabungan dua berkas, serta dua sampel simulasi bawaan (`simulasi-pg-diagnostik` dan `simulasi-uraian`). Data lembar kerja dapat disimpan kembali ke `.ana`, `.xlsx`, atau `.csv`, sedangkan setiap kartu hasil dan grafik dapat disalin ke Word/Docs/Excel atau diunduh sebagai `.txt`, `.pdf`, `.png`, dan `.jpg`.
+
+## Cara Menjalankan
 
 ### Prasyarat
-- Node.js `>= 18` & `npm` (untuk pengembangan, pengujian, dan *build* aplikasi web TypeScript)
 
-### Pengembangan Lokal, Pengujian & Build Aplikasi Web
+Siapkan Node.js versi 18 atau lebih baru beserta `npm`.
+
+### Menjalankan di Lokal
+
+Masuk ke direktori `web`, pasang dependensi, lalu jalankan server pengembangan Vite:
+
 ```powershell
 cd web
 npm ci
-
-# Menjalankan server pengembangan Vite
 npm run dev
+```
+
+Setelah server aktif, buka alamat lokal yang ditampilkan di terminal melalui peramban.
+
+### Pengujian dan Build Statis
+
+```powershell
+cd web
 
 # Menjalankan unit test
 npm test
 
-# Typecheck + build produksi statis ke web/dist/
+# Memeriksa tipe TypeScript dan membangun berkas statis ke web/dist/
 npm run build
+
+# Pratinjau hasil build secara lokal
+npm run preview
 ```
 
-Hasil build di `web/dist/` merupakan berkas statis murni (termasuk halaman panduan di `web/dist/user_manual/`) yang dapat langsung diunggah ke `public_html` cPanel, Cloudflare Pages, atau GitHub Pages.
+Keluaran di `web/dist/` berisi berkas statis murni (termasuk halaman panduan pengguna di `web/dist/user_manual/`) yang dapat langsung dipasang di GitHub Pages, Cloudflare Pages, atau cPanel.
 
----
+## Dokumentasi dan Peta Proyek
 
-## Struktur Direktori & Dokumentasi
+Panduan langkah demi langkah, batasan teknis, dan detail rumus tersedia di dokumen terpisah agar halaman ini tetap ringkas:
 
-- `web/`: kode sumber utama aplikasi web (`React` + `TypeScript` + `Vite`):
-  - `web/src/standalone/`: mesin psikometri CTT murni TypeScript (`engine/`) dan pembaca/penulis `.ana`, `.csv`, `.xlsx` (`io/`) beserta `client.ts`.
-  - `web/src/components/`, `web/src/hooks/`, `web/src/model/`, `web/src/styles/`, `web/src/utils/`: antarmuka, virtual spreadsheet, grafik SVG, dan ekspor kartu.
-  - `web/scripts/buildUserManual.mjs`: kompilator `USER_MANUAL.md` ke halaman HTML statis saat *dev* dan *build*.
-  - `web/tests/run_tests.mjs`: rangkaian unit test aplikasi web.
-- `assets/`: ikon vektor dan `.ico` orisinal aplikasi (`itemetri.svg`, `itemetri.ico`).
-- Dokumentasi proyek:
-  - [USER_MANUAL.md](USER_MANUAL.md): panduan pengguna lengkap beserta notasi matematis.
-  - [DESIGN.md](DESIGN.md): sistem token desain dan standar antarmuka.
-  - [CHANGELOG.md](CHANGELOG.md): riwayat perubahan dan rilis.
-  - [LICENSE](LICENSE): lisensi MIT proyek.
+- [USER_MANUAL.md](USER_MANUAL.md) memuat panduan penggunaan lengkap beserta notasi matematis.
+- [DESIGN.md](DESIGN.md) mendokumentasikan token desain dan standar antarmuka.
+- [CHANGELOG.md](CHANGELOG.md) mencatat riwayat perubahan tiap rilis.
+- [LICENSE](LICENSE) berisi naskah lisensi MIT.
 
----
+Kode sumber utama aplikasi web berada di direktori `web/` (mesin psikometri dan pembaca/penulis berkas di `web/src/standalone/`, komponen antarmuka di `web/src/components/`, dan unit test di `web/tests/run_tests.mjs`), sedangkan ikon aplikasi berada di `assets/`.
 
-## Lisensi, Atribusi, & Penafian
+## Lisensi, Atribusi, dan Penafian
 
-### Lisensi Open Source
-**Itemetri** dilisensikan di bawah **MIT License** (lihat [LICENSE](LICENSE)). Anda bebas menggunakan, menyalin, memodifikasi, dan mendistribusikan kode sumber ini dengan tetap menyertakan pemberitahuan hak cipta dan izin MIT tersebut.
+Itemetri dirilis di bawah lisensi MIT ([LICENSE](LICENSE)). Anda bebas memakai, menyalin, mengubah, dan mendistribusikan ulang kode sumber ini dengan tetap menyertakan pemberitahuan hak cipta dan izin MIT.
 
-### Atribusi & Penafian Non-Afiliasi
-- **Itemetri** adalah perangkat lunak independen yang ditulis ulang sepenuhnya dari nol dalam TypeScript dan Python, terinspirasi oleh kontribusi besar perangkat lunak **ANATES** bagi ekosistem evaluasi pembelajaran di Indonesia.
-- Proyek ini tidak berafiliasi dengan, tidak disponsori oleh, dan tidak mendistribusikan biner, ikon, atau aset milik pembuat ANATES asli. Dukungan pembacaan/penulisan berkas `.ana`/`.ANA` disediakan semata untuk interoperabilitas data pengguna.
-- Rumus statistik dan psikometri yang diimplementasikan merupakan formulasi matematis standar di domain publik.
+Proyek ini dikembangkan secara independen dari nol dalam TypeScript dan terinspirasi oleh kontribusi perangkat lunak ANATES bagi ekosistem evaluasi pembelajaran di Indonesia. Itemetri tidak berafiliasi dengan, tidak disponsori oleh, dan tidak mendistribusikan biner, ikon, maupun aset milik pembuat ANATES asli. Dukungan format `.ana`/`.ANA` disediakan semata agar pengguna tetap dapat membuka dan mengaudit arsip data lama mereka.
 
-### Apresiasi Sukarela (Opsional)
-Meneladani semangat sosial pembuat ANATES yang mendorong nilai kebaikan melalui karyanya, apabila **Itemetri** dirasakan bermanfaat dalam tugas pengajaran atau penelitian Anda, Anda dipersilakan (secara sukarela, bukan sebagai syarat lisensi) menyalurkan infak atau donasi ke masjid, panti asuhan, atau lembaga sosial pilihan Anda sendiri.
+Apabila Itemetri membantu pekerjaan pengajaran atau penelitian Anda, Anda dipersilakan secara sukarela menyalurkan infak atau donasi ke masjid, panti asuhan, atau lembaga sosial pilihan Anda sendiri.

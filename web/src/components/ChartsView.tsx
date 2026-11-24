@@ -10,6 +10,14 @@ import { CardExportBar } from "./CardExportBar";
 
 export type ChartSvgKey = "histogram" | "scatter" | "detail";
 
+function formatScoreTick(value: number): string {
+  const rounded = Math.round(value);
+  if (Math.abs(value - rounded) < 1e-9) {
+    return String(rounded);
+  }
+  return Number(value.toFixed(2)).toString();
+}
+
 interface ChartsViewProps {
   exam: ExamPayload;
   analysis: AnalysisResponse;
@@ -31,31 +39,36 @@ export function ChartsView({
 }: ChartsViewProps) {
   const histRef = useRef<SVGSVGElement | null>(null);
   const scatterRef = useRef<SVGSVGElement | null>(null);
-  const detailRef = useRef<SVGSVGElement | null>(null);
 
   const isMc = exam.kind === "multiple_choice";
-  const rawScores = analysis.scoring.subjects.map((s) =>
-    isMc
-      ? (s as MultipleChoiceSubjectScore).raw_score
-      : (s as EssaySubjectScore).total_score,
-  );
-  const minScore = rawScores.length > 0 ? Math.min(...rawScores) : 0;
-  const maxScore = rawScores.length > 0 ? Math.max(...rawScores) : 1;
-  const binCount = Math.min(10, Math.max(4, Math.ceil(Math.sqrt(rawScores.length))));
+  const usesWeighted = analysis.scoring.uses_weighted_score;
+  const activeScores = analysis.scoring.subjects.map((s) => {
+    if (!isMc) return (s as EssaySubjectScore).total_score;
+    const mc = s as MultipleChoiceSubjectScore;
+    return usesWeighted ? mc.weighted_score : mc.raw_score;
+  });
+  const minScore = activeScores.length > 0 ? Math.min(...activeScores) : 0;
+  const maxScore = activeScores.length > 0 ? Math.max(...activeScores) : 1;
+  const binCount = Math.min(10, Math.max(4, Math.ceil(Math.sqrt(activeScores.length))));
   const span = Math.max(1e-6, maxScore - minScore);
   const binWidth = span / binCount;
   const bins = Array.from({ length: binCount }, (_, idx) => {
     const low = minScore + idx * binWidth;
     const high = low + binWidth;
-    const count = rawScores.filter((v) =>
+    const scoresInBin = activeScores.filter((v) =>
       idx === binCount - 1 ? v >= low && v <= high + 1e-9 : v >= low && v < high,
-    ).length;
-    return { low, high, count };
+    );
+    const count = scoresInBin.length;
+    const actualLow = count > 0 ? Math.min(...scoresInBin) : low;
+    const actualHigh = count > 0 ? Math.max(...scoresInBin) : high;
+    const lowLabel = formatScoreTick(actualLow);
+    const highLabel = formatScoreTick(actualHigh);
+    const rangeLabel = lowLabel === highLabel ? lowLabel : `${lowLabel}-${highLabel}`;
+    return { low, high, count, rangeLabel };
   });
   const maxBinCount = Math.max(1, ...bins.map((b) => b.count));
 
   const safeIdx = Math.max(0, Math.min(analysis.item_count - 1, selectedItemIndex));
-  const selectedDist = analysis.distractors?.[safeIdx];
 
   const histSpec = useMemo<ExportableCardSpec>(
     () => ({
@@ -63,11 +76,11 @@ export function ChartsView({
       title: `Histogram Sebaran Skor Total Peserta (N=${analysis.subject_count})`,
       subtitle,
       getSvgElement: () => histRef.current,
-      footnote: `Rentang skor ${minScore.toFixed(1)} sampai ${maxScore.toFixed(1)}, rata-rata ${
-        analysis.scoring.mean !== null ? analysis.scoring.mean.toFixed(2) : "NAN"
-      }.`,
+      footnote: `Rentang skor ${formatScoreTick(minScore)} sampai ${formatScoreTick(maxScore)}${
+        isMc ? (usesWeighted ? " (skor dibobot)" : " (skor mentah)") : ""
+      }, rata-rata ${analysis.scoring.mean !== null ? analysis.scoring.mean.toFixed(2) : "NAN"}.`,
     }),
-    [analysis.subject_count, analysis.scoring.mean, subtitle, minScore, maxScore],
+    [analysis.subject_count, analysis.scoring.mean, subtitle, minScore, maxScore, isMc, usesWeighted],
   );
 
   const scatterSpec = useMemo<ExportableCardSpec>(
@@ -81,37 +94,8 @@ export function ChartsView({
     [analysis.item_count, safeIdx, subtitle],
   );
 
-  const detailSpec = useMemo<ExportableCardSpec>(() => {
-    if (isMc && selectedDist) {
-      return {
-        id: `grafik-opsi-butir-${selectedDist.item_number}`,
-        title: `Distribusi Pilihan Jawaban Butir #${selectedDist.item_number}`,
-        subtitle,
-        getSvgElement: () => detailRef.current,
-        footnote: `Kunci ${selectedDist.key}, kosong ${selectedDist.blank_count}, lainnya ${selectedDist.other_count}.`,
-      };
-    }
-    return {
-      id: "tabel-unggul-asor",
-      title: "Perbandingan Kelompok Unggul vs Asor per Butir",
-      subtitle,
-      table: {
-        headers: ["Butir", "Mean Unggul", "Mean Asor", "Selisih Mean", "t-hitung"],
-        alignments: ["right", "right", "right", "right", "right"],
-        rows: (analysis.essay_upper_lower ?? []).map((ul) => [
-          `#${ul.item_number}`,
-          ul.upper_mean?.toFixed(2) ?? "NAN",
-          ul.lower_mean?.toFixed(2) ?? "NAN",
-          ul.mean_diff?.toFixed(2) ?? "NAN",
-          ul.t_value?.toFixed(2) ?? "NAN",
-        ]),
-      },
-    };
-  }, [isMc, selectedDist, analysis.essay_upper_lower, subtitle]);
-
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-      <div className="charts-grid">
+    <div className="charts-grid">
         <section className="card">
           <figure className="chart-figure">
             <div className="card-head-row" style={{ marginBlockEnd: "var(--space-2)" }}>
@@ -148,7 +132,7 @@ export function ChartsView({
                       rx="2"
                     >
                       <title>
-                        Rentang {bin.low.toFixed(1)}..{bin.high.toFixed(1)}: {bin.count} peserta
+                        Skor {bin.rangeLabel}: {bin.count} peserta
                       </title>
                     </rect>
                     <text
@@ -167,7 +151,7 @@ export function ChartsView({
                       fontSize="10"
                       fill="var(--ink-secondary)"
                     >
-                      {bin.low.toFixed(0)}
+                      {bin.rangeLabel}
                     </text>
                   </g>
                 );
@@ -176,6 +160,29 @@ export function ChartsView({
                 Skor Total Peserta
               </text>
             </svg>
+            {analysis.score_distribution && (
+              <div className="dist-insight-box">
+                <div className="dist-insight-meta">
+                  <span>
+                    Bentuk: <strong>{analysis.score_distribution.skew_label}</strong>
+                    {analysis.score_distribution.skewness !== null
+                      ? ` (skew=${analysis.score_distribution.skewness.toFixed(2)})`
+                      : ""}
+                  </span>
+                  {analysis.score_distribution.iqr !== null && (
+                    <span>
+                      IQR: <strong>{analysis.score_distribution.iqr.toFixed(2)}</strong>
+                    </span>
+                  )}
+                  {analysis.score_distribution.pass_percent !== null && (
+                    <span>
+                      Tuntas: <strong>{analysis.score_distribution.pass_percent.toFixed(1)}%</strong>
+                    </span>
+                  )}
+                </div>
+                <p style={{ margin: "0.3rem 0 0 0" }}>{analysis.score_distribution.narrative}</p>
+              </div>
+            )}
           </figure>
         </section>
 
@@ -273,119 +280,5 @@ export function ChartsView({
           </figure>
         </section>
       </div>
-
-      <section className="card">
-        <div className="card-head-row" style={{ marginBlockEnd: "var(--space-2)" }}>
-          <h2 className="card-title" style={{ margin: 0 }}>
-            {isMc
-              ? `Bagaimana distribusi pilihan jawaban pada Butir #${safeIdx + 1}?`
-              : "Bagaimana perbandingan rata-rata Kelompok Unggul vs Asor per butir?"}
-          </h2>
-          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--space-2)" }}>
-            <div className="field-inline">
-              <label htmlFor="chart-item-select">Butir terpilih</label>
-              <select
-                id="chart-item-select"
-                value={safeIdx}
-                onChange={(e) => onSelectItem(Number(e.target.value))}
-              >
-                {analysis.difficulty.map((d) => (
-                  <option key={d.item_index} value={d.item_index}>
-                    Butir #{d.item_number}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <CardExportBar spec={detailSpec} onStatusMessage={onStatusMessage} />
-          </div>
-        </div>
-
-        {isMc && selectedDist ? (
-          <svg
-            ref={(el) => {
-              detailRef.current = el;
-              onSvgRef?.("detail", el);
-            }}
-            className="chart-svg"
-            style={{ maxInlineSize: "38rem" }}
-            viewBox="0 0 520 190"
-            role="img"
-            aria-label={`Grafik batang distribusi opsi butir ${selectedDist.item_number}`}
-          >
-            {selectedDist.options.map((opt, idx) => {
-              const y = 16 + idx * 32;
-              const pct =
-                analysis.subject_count > 0
-                  ? (opt.frequency / analysis.subject_count) * 100
-                  : 0;
-              const barW = (pct / 100) * 320;
-              const isKey = opt.option === selectedDist.key;
-              return (
-                <g key={opt.option}>
-                  <text
-                    x="14"
-                    y={y + 16}
-                    fontSize="12"
-                    fontWeight={isKey ? "700" : "500"}
-                    fill={isKey ? "var(--accent)" : "var(--ink-primary)"}
-                  >
-                    {opt.option} {isKey ? "(Kunci)" : ""}
-                  </text>
-                  <rect
-                    x="86"
-                    y={y + 2}
-                    width="320"
-                    height="20"
-                    fill="var(--bg-subtle)"
-                    rx="3"
-                  />
-                  <rect
-                    x="86"
-                    y={y + 2}
-                    width={barW}
-                    height="20"
-                    fill={isKey ? "var(--accent)" : "var(--border-strong)"}
-                    rx="3"
-                  />
-                  <text
-                    x="416"
-                    y={y + 16}
-                    fontSize="12"
-                    fill="var(--ink-primary)"
-                  >
-                    {opt.frequency} ({pct.toFixed(0)}%) [{opt.quality || "-"}]
-                  </text>
-                </g>
-              );
-            })}
-          </svg>
-        ) : analysis.essay_upper_lower ? (
-          <div style={{ overflowX: "auto" }}>
-            <table className="apa-table">
-              <thead>
-                <tr>
-                  <th className="num">Butir</th>
-                  <th className="num">Mean Unggul</th>
-                  <th className="num">Mean Asor</th>
-                  <th className="num">Selisih Mean</th>
-                  <th className="num">t-hitung</th>
-                </tr>
-              </thead>
-              <tbody>
-                {analysis.essay_upper_lower.map((ul) => (
-                  <tr key={ul.item_index}>
-                    <td className="num">#{ul.item_number}</td>
-                    <td className="num">{ul.upper_mean?.toFixed(2) ?? "NAN"}</td>
-                    <td className="num">{ul.lower_mean?.toFixed(2) ?? "NAN"}</td>
-                    <td className="num">{ul.mean_diff?.toFixed(2) ?? "NAN"}</td>
-                    <td className="num">{ul.t_value?.toFixed(2) ?? "NAN"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : null}
-      </section>
-    </div>
   );
 }

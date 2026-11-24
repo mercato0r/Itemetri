@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { ThemePreference } from "../types";
 
-const STORAGE_KEY = "anates-color-scheme";
+const STORAGE_KEY = "itemetri-color-scheme";
 
 function readStoredPreference(): ThemePreference {
   try {

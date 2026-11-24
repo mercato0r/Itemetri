@@ -5,6 +5,7 @@ import {
   downloadCardAsImage,
   downloadCardAsPdf,
   downloadCardAsText,
+  downloadCardAsXlsx,
   type ExportableCardSpec,
 } from "../utils/resultExport";
 import { CheckIcon, ChevronDownIcon, CopyIcon, DownloadIcon } from "./Icons";
@@ -14,6 +15,7 @@ interface CardExportBarProps {
   copyLabel?: string;
   downloadLabel?: string;
   iconOnly?: boolean;
+  primaryDownload?: boolean;
   onStatusMessage?: (msg: string) => void;
 }
 
@@ -22,6 +24,7 @@ export function CardExportBar({
   copyLabel = "Salin",
   downloadLabel = "Unduh",
   iconOnly = true,
+  primaryDownload = false,
   onStatusMessage,
 }: CardExportBarProps) {
   const [copied, setCopied] = useState(false);
@@ -42,7 +45,7 @@ export function CardExportBar({
       const btn = downloadBtnRef.current;
       if (!btn) return;
       const rect = btn.getBoundingClientRect();
-      const approxMenuH = 166;
+      const approxMenuH = 204;
       const top =
         rect.bottom + 6 + approxMenuH <= window.innerHeight
           ? rect.bottom + 4
@@ -82,13 +85,21 @@ export function CardExportBar({
   }, [menuOpen]);
 
   const handleCopy = async () => {
-    const msg = await copyCardToClipboard(spec);
-    setCopied(true);
-    onStatusMessage?.(msg);
-    window.setTimeout(() => setCopied(false), 1800);
+    try {
+      const msg = await copyCardToClipboard(spec);
+      setCopied(true);
+      onStatusMessage?.(msg);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch (err) {
+      onStatusMessage?.(
+        err instanceof Error ? err.message : "Gagal menyalin hasil ke papan klip.",
+      );
+    }
   };
 
-  const handleDownload = async (fmt: "txt" | "pdf" | "png" | "jpg") => {
+  const supportsXlsx = Boolean(spec.table || spec.metrics || (spec.sections && spec.sections.length > 0));
+
+  const handleDownload = async (fmt: "txt" | "pdf" | "xlsx" | "png" | "jpg") => {
     setBusyFmt(fmt);
     setMenuOpen(false);
     try {
@@ -97,7 +108,9 @@ export function CardExportBar({
           ? await downloadCardAsText(spec)
           : fmt === "pdf"
             ? await downloadCardAsPdf(spec)
-            : await downloadCardAsImage(spec, fmt);
+            : fmt === "xlsx"
+              ? await downloadCardAsXlsx(spec)
+              : await downloadCardAsImage(spec, fmt);
       if (res.cancelled) {
         onStatusMessage?.("Penyimpanan berkas dibatalkan.");
       } else if (res.path) {
@@ -106,6 +119,8 @@ export function CardExportBar({
         onStatusMessage?.(`Berkas teks itemetri-${spec.id}.txt diunduh.`);
       } else if (fmt === "pdf") {
         onStatusMessage?.(`Laporan PDF itemetri-${spec.id}.pdf diunduh.`);
+      } else if (fmt === "xlsx") {
+        onStatusMessage?.(`Workbook Excel itemetri-${spec.id}.xlsx diunduh.`);
       } else {
         onStatusMessage?.(`Gambar itemetri-${spec.id}.${fmt} diunduh.`);
       }
@@ -137,7 +152,13 @@ export function CardExportBar({
       <button
         ref={downloadBtnRef}
         type="button"
-        className={iconOnly ? "btn btn-compact btn-icon-only" : "btn btn-compact"}
+        className={
+          iconOnly
+            ? "btn btn-compact btn-icon-only"
+            : primaryDownload
+              ? "btn btn-primary btn-compact"
+              : "btn btn-compact"
+        }
         aria-label={`${downloadLabel} ${spec.title}`}
         title={downloadTitle}
         aria-expanded={menuOpen}
@@ -177,6 +198,16 @@ export function CardExportBar({
             >
               <span>Laporan PDF (.pdf)</span>
             </button>
+            {supportsXlsx && (
+              <button
+                type="button"
+                role="menuitem"
+                className="export-menu-item"
+                onClick={() => void handleDownload("xlsx")}
+              >
+                <span>Tabel Excel (.xlsx)</span>
+              </button>
+            )}
             <button
               type="button"
               role="menuitem"

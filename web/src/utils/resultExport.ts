@@ -1,3 +1,4 @@
+import { buildXlsxBytes } from "../standalone/io/xlsxZip";
 import { saveBlobWithDialog, type SaveBlobResult } from "./fileSave";
 
 export interface ExportMetricItem {
@@ -266,6 +267,40 @@ function fitText(ctx: CanvasRenderingContext2D, text: string, maxW: number): str
   return text.slice(0, end) + suffix;
 }
 
+function wrapLines(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxW: number,
+  maxLines = 4,
+): string[] {
+  const clean = text.trim();
+  if (!clean) return [""];
+  if (ctx.measureText(clean).width <= maxW) return [clean];
+  const words = clean.split(/\s+/);
+  const lines: string[] = [];
+  let current = "";
+
+  for (const word of words) {
+    const candidate = current ? `${current} ${word}` : word;
+    if (ctx.measureText(candidate).width <= maxW) {
+      current = candidate;
+    } else {
+      if (current) {
+        lines.push(current);
+        if (lines.length >= maxLines) {
+          lines[lines.length - 1] = fitText(ctx, `${lines[lines.length - 1]} ${word}`, maxW);
+          return lines;
+        }
+      }
+      current = ctx.measureText(word).width <= maxW ? word : fitText(ctx, word, maxW);
+    }
+  }
+  if (current) {
+    lines.push(current);
+  }
+  return lines.slice(0, maxLines);
+}
+
 interface TableLayout {
   headers: string[];
   alignments: Array<"left" | "right">;
@@ -277,10 +312,17 @@ type RenderBlock =
   | { kind: "heading"; height: number; title: string; subtitle?: string }
   | { kind: "metrics"; height: number; items: ExportMetricItem[] }
   | { kind: "tableHeader"; height: number; layout: TableLayout }
-  | { kind: "tableRow"; height: number; layout: TableLayout; cells: string[]; isLast: boolean }
+  | {
+      kind: "tableRow";
+      height: number;
+      layout: TableLayout;
+      wrappedCells: string[][];
+      rowIndex: number;
+      isLast: boolean;
+    }
   | { kind: "tableBottom"; height: number }
   | { kind: "chart"; height: number; img: HTMLImageElement; drawW: number; drawH: number }
-  | { kind: "footnote"; height: number; text: string }
+  | { kind: "footnote"; height: number; lines: string[] }
   | { kind: "spacer"; height: number };
 
 function computeTableLayout(
@@ -358,11 +400,19 @@ async function buildRenderBlocks(spec: ExportableCardSpec): Promise<RenderBlock[
       const layout = computeTableLayout(ctx, sec.table);
       blocks.push({ kind: "tableHeader", height: 28, layout });
       sec.table.rows.forEach((cells, rIdx) => {
+        const wrappedCells = cells.map((val, c) => {
+          const align = layout.alignments[c] ?? "left";
+          const w = (layout.colWidths[c] ?? 40) - 10;
+          ctx.font = align === "right" ? `400 12px ${MONO_FONT}` : `400 12px ${SANS_FONT}`;
+          return wrapLines(ctx, val ?? "", w, 3);
+        });
+        const maxLines = Math.max(1, ...wrappedCells.map((lines) => lines.length));
         blocks.push({
           kind: "tableRow",
-          height: 22,
+          height: maxLines * 15 + 7,
           layout,
-          cells,
+          wrappedCells,
+          rowIndex: rIdx,
           isLast: rIdx === sec.table!.rows.length - 1,
         });
       });
@@ -386,7 +436,9 @@ async function buildRenderBlocks(spec: ExportableCardSpec): Promise<RenderBlock[
     }
 
     if (sec.footnote) {
-      blocks.push({ kind: "footnote", height: 22, text: sec.footnote });
+      ctx.font = `400 11px ${SANS_FONT}`;
+      const lines = wrapLines(ctx, `Catatan: ${sec.footnote}`, CONTENT_WIDTH, 5);
+      blocks.push({ kind: "footnote", height: lines.length * 15 + 8, lines });
     }
 
     if (sIdx < sections.length - 1) {
@@ -479,22 +531,28 @@ function drawBlock(ctx: CanvasRenderingContext2D, block: RenderBlock, y: number)
 
     case "tableRow": {
       const { alignments, colX, colWidths } = block.layout;
+      if (block.rowIndex % 2 === 1) {
+        ctx.fillStyle = PALETTE.subtle;
+        ctx.fillRect(PAD_X, y, CONTENT_WIDTH, block.height);
+      }
       ctx.fillStyle = PALETTE.ink;
-      ctx.textBaseline = "middle";
-      block.cells.forEach((val, c) => {
+      ctx.textBaseline = "top";
+      block.wrappedCells.forEach((lines, c) => {
         const align = alignments[c] ?? "left";
         const w = colWidths[c] ?? 40;
         const x = colX[c] ?? PAD_X;
         ctx.font = align === "right" ? `400 12px ${MONO_FONT}` : `400 12px ${SANS_FONT}`;
         ctx.textAlign = align;
         const drawX = align === "right" ? x + w - 5 : x + 5;
-        ctx.fillText(fitText(ctx, val ?? "", w - 10), drawX, y + 11);
+        lines.forEach((line, lIdx) => {
+          ctx.fillText(line, drawX, y + 4 + lIdx * 15);
+        });
       });
       ctx.strokeStyle = PALETTE.ruleSubtle;
       ctx.lineWidth = 0.6;
       ctx.beginPath();
-      ctx.moveTo(PAD_X, y + 21.5);
-      ctx.lineTo(PAD_X + CONTENT_WIDTH, y + 21.5);
+      ctx.moveTo(PAD_X, y + block.height - 0.5);
+      ctx.lineTo(PAD_X + CONTENT_WIDTH, y + block.height - 0.5);
       ctx.stroke();
       return;
     }
@@ -520,7 +578,9 @@ function drawBlock(ctx: CanvasRenderingContext2D, block: RenderBlock, y: number)
       ctx.font = `400 11px ${SANS_FONT}`;
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
-      ctx.fillText(fitText(ctx, `Catatan: ${block.text}`, CONTENT_WIDTH), PAD_X, y + 4);
+      block.lines.forEach((line, lIdx) => {
+        ctx.fillText(line, PAD_X, y + 4 + lIdx * 15);
+      });
       return;
     }
 
@@ -577,12 +637,16 @@ async function renderSpecToPageCanvases(spec: ExportableCardSpec): Promise<HTMLC
     y = PAD_Y;
   };
 
-  for (const block of blocks) {
+  const footerReserve = 24;
+  const maxBodyY = PAGE_HEIGHT - PAD_Y - footerReserve;
+
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i]!;
     if (block.kind === "tableHeader") {
       activeTableHeader = block;
     } else if (block.kind === "tableBottom" || block.kind === "heading") {
       if (block.kind === "tableBottom") {
-        if (y + block.height > PAGE_HEIGHT - PAD_Y) {
+        if (y + block.height > maxBodyY) {
           pushPage();
         }
         drawBlock(ctx, block, y);
@@ -598,7 +662,18 @@ async function renderSpecToPageCanvases(spec: ExportableCardSpec): Promise<HTMLC
       continue;
     }
 
-    if (y + block.height > PAGE_HEIGHT - PAD_Y && y > PAD_Y + 20) {
+    let requiredHeight = block.height;
+    if (block.kind === "heading") {
+      const next = blocks[i + 1];
+      if (next && (next.kind === "chart" || next.kind === "metrics")) {
+        requiredHeight += next.height;
+      } else if (next && next.kind === "tableHeader") {
+        const firstRow = blocks[i + 2];
+        requiredHeight += next.height + (firstRow?.kind === "tableRow" ? firstRow.height : 0);
+      }
+    }
+
+    if (y + requiredHeight > maxBodyY && y > PAD_Y + 20) {
       pushPage();
       if (block.kind === "tableRow" && activeTableHeader) {
         drawBlock(ctx, activeTableHeader, y);
@@ -611,6 +686,16 @@ async function renderSpecToPageCanvases(spec: ExportableCardSpec): Promise<HTMLC
   }
 
   pages.push(currentPage);
+  const totalPages = pages.length;
+  pages.forEach((pageCanvas, idx) => {
+    const pCtx = pageCanvas.getContext("2d");
+    if (!pCtx) return;
+    pCtx.fillStyle = PALETTE.muted;
+    pCtx.font = `400 10px ${SANS_FONT}`;
+    pCtx.textAlign = "right";
+    pCtx.textBaseline = "bottom";
+    pCtx.fillText(`Itemetri | Halaman ${idx + 1} dari ${totalPages}`, PAD_X + CONTENT_WIDTH, PAGE_HEIGHT - 12);
+  });
   return pages;
 }
 
@@ -797,4 +882,84 @@ export async function downloadCardAsPdf(spec: ExportableCardSpec): Promise<SaveB
   pdfCopy.set(pdfBytes);
   const blob = new Blob([pdfCopy.buffer], { type: "application/pdf" });
   return saveBlobWithDialog(blob, `itemetri-${spec.id}.pdf`);
+}
+
+const XLSX_FORMULA_PREFIX_RE = /^[=+\-@\t\r]/;
+
+function toSafeXlsxCell(val: string | number): string | number {
+  if (typeof val === "number") return val;
+  if (XLSX_FORMULA_PREFIX_RE.test(val)) return `'${val}`;
+  return val;
+}
+
+function toNumberIfPureNumeric(raw: string): string | number {
+  const trimmed = raw.trim();
+  if (/^[+-]?\d+(?:\.\d+)?$/.test(trimmed)) {
+    const n = Number(trimmed);
+    if (Number.isFinite(n)) return n;
+  }
+  return toSafeXlsxCell(raw);
+}
+
+export async function buildSpecXlsxBytes(spec: ExportableCardSpec): Promise<Uint8Array> {
+  const rows: Array<Array<string | number>> = [];
+  const sections = getSections(spec);
+  if (spec.sections && spec.sections.length > 0) {
+    rows.push([toSafeXlsxCell(spec.title)]);
+    if (spec.subtitle) rows.push([toSafeXlsxCell(spec.subtitle)]);
+    rows.push([]);
+  }
+
+  for (const section of sections) {
+    rows.push([toSafeXlsxCell(section.title)]);
+    if (section.subtitle && !(spec.sections && spec.sections.length > 0)) {
+      rows.push([toSafeXlsxCell(section.subtitle)]);
+    }
+    if (section.metrics && section.metrics.length > 0) {
+      rows.push(["Statistik", "Nilai", "Keterangan"]);
+      for (const m of section.metrics) {
+        rows.push([
+          toSafeXlsxCell(m.label),
+          toNumberIfPureNumeric(m.value),
+          toSafeXlsxCell(m.note ?? ""),
+        ]);
+      }
+    }
+    if (section.table) {
+      rows.push(section.table.headers.map(toSafeXlsxCell));
+      for (const row of section.table.rows) {
+        rows.push(
+          section.table.headers.map((_, idx) => {
+            const cell = row[idx] ?? "";
+            return section.table?.alignments?.[idx] === "right"
+              ? toNumberIfPureNumeric(cell)
+              : toSafeXlsxCell(cell);
+          }),
+        );
+      }
+    }
+    if (!section.table && !section.metrics && section.getSvgElement?.()) {
+      rows.push([
+        toSafeXlsxCell(
+          `[Grafik: ${section.title} - ekspor sebagai PDF, PNG, atau JPG untuk melihat gambar grafik]`,
+        ),
+      ]);
+    }
+    if (section.footnote) {
+      rows.push([toSafeXlsxCell(`Catatan: ${section.footnote}`)]);
+    }
+    rows.push([]);
+  }
+
+  return buildXlsxBytes("Laporan Itemetri", rows);
+}
+
+export async function downloadCardAsXlsx(spec: ExportableCardSpec): Promise<SaveBlobResult> {
+  const bytes = await buildSpecXlsxBytes(spec);
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  const blob = new Blob([copy.buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  return saveBlobWithDialog(blob, `itemetri-${spec.id}.xlsx`);
 }

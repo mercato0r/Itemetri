@@ -1,15 +1,16 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ClipboardEvent, KeyboardEvent } from "react";
 import { GRID_COL_WIDTH, useVirtualGrid } from "../hooks/useVirtualGrid";
 import {
   clearWorksheetRange,
   type EffectiveVariableKind,
-  pasteWorksheetBlock,
   setWorksheetCell,
+  smartPasteWorksheet,
   type WorksheetState,
 } from "../model/worksheet";
-import { parseEssayCell, parseTsvBlock } from "../utils/clipboard";
+import { parseEssayCell, parseLocalizedNumber, parseTsvBlock } from "../utils/clipboard";
 import { validateEssayCell, validateMcCell } from "../utils/validation";
+import { WarningIcon } from "./Icons";
 
 export interface CellCoord {
   row: number;
@@ -18,6 +19,7 @@ export interface CellCoord {
 
 interface JamoviSpreadsheetProps {
   worksheet: WorksheetState;
+  hasActiveResponses: boolean;
   effectiveKinds: EffectiveVariableKind[];
   activeCell: CellCoord;
   selectionAnchor: CellCoord;
@@ -33,6 +35,7 @@ const PHANTOM_COLS = 3;
 
 export function JamoviSpreadsheet({
   worksheet,
+  hasActiveResponses,
   effectiveKinds,
   activeCell,
   selectionAnchor,
@@ -116,21 +119,54 @@ export function JamoviSpreadsheet({
     if (kind === "multiple_choice") {
       return validateMcCell(raw, worksheet.optionCount);
     }
-    const ideal = Number(worksheet.columns[col]?.referenceValue ?? "10");
+    const ideal = parseLocalizedNumber(worksheet.columns[col]?.referenceValue ?? "");
     const parsed = parseEssayCell(raw);
-    if (!parsed.valid) return `Nilai ${raw} tidak valid untuk butir uraian.`;
-    if (Number.isFinite(ideal) && ideal > 0) {
+    if (!parsed.valid) return `Nilai '${raw}' tidak valid untuk skor uraian (harus angka >= 0).`;
+    if (ideal !== null && ideal > 0) {
       return validateEssayCell(parsed.value, ideal);
     }
     return null;
   };
 
+  const cellValidationSummary = useMemo(() => {
+    let invalidCount = 0;
+    let firstMsg: string | null = null;
+    for (let r = 0; r < worksheet.rows.length; r += 1) {
+      for (let c = 0; c < worksheet.columns.length; c += 1) {
+        const raw = (worksheet.rows[r]?.cells[c] ?? "").trim();
+        if (!raw) continue;
+        const kind = effectiveKinds[c] ?? "multiple_choice";
+        let msg: string | null = null;
+        if (kind === "multiple_choice") {
+          msg = validateMcCell(raw, worksheet.optionCount);
+        } else {
+          const ideal = parseLocalizedNumber(worksheet.columns[c]?.referenceValue ?? "");
+          const parsed = parseEssayCell(raw);
+          if (!parsed.valid) {
+            msg = `Nilai '${raw}' tidak valid untuk skor uraian (harus angka >= 0).`;
+          } else if (ideal !== null && ideal > 0) {
+            msg = validateEssayCell(parsed.value, ideal);
+          }
+        }
+        if (msg) {
+          invalidCount += 1;
+          if (!firstMsg) {
+            const itemNo = worksheet.columns[c]?.itemNumber ?? c + 1;
+            firstMsg = `Baris ${r + 1} Butir #${itemNo}: ${msg}`;
+          }
+        }
+      }
+    }
+    return { invalidCount, firstMsg };
+  }, [worksheet.rows, worksheet.columns, effectiveKinds, worksheet.optionCount]);
+
+  const activeCellWarning = getCellValidationWarning(activeCell.row, activeCell.col);
+  const activeWarningLabel = activeCellWarning
+    ? `Baris ${activeCell.row + 1} Butir #${worksheet.columns[activeCell.col]?.itemNumber ?? activeCell.col + 1}: ${activeCellWarning}`
+    : cellValidationSummary.firstMsg;
+
   const commitDraft = (row: number, col: number, draft: string) => {
     const trimmed = draft.trim();
-    if (row === -1 && col >= 0 && trimmed === "") {
-      setEditing(null);
-      return;
-    }
     onUpdateWorksheet((curr) => setWorksheetCell(curr, row, col, col === -1 ? draft : trimmed));
     setEditing(null);
   };
@@ -249,26 +285,51 @@ export function JamoviSpreadsheet({
     onStatusMessage("Rentang sel disalin ke papan klip.");
   };
 
+  const applyPastedMatrix = (raw: string) => {
+    const matrix = parseTsvBlock(raw);
+    if (matrix.length === 0) return false;
+    setEditing(null);
+    const startRow = activeCell.row === -1 && activeCell.col === -1 ? 0 : activeCell.row;
+    const startCol = activeCell.row === -1 && activeCell.col === -1 ? 0 : activeCell.col;
+    let appliedCount = 0;
+    let smartMapped = false;
+    onUpdateWorksheet((curr) => {
+      const res = smartPasteWorksheet(curr, startRow, startCol, matrix);
+      appliedCount = res.applied;
+      smartMapped = res.smartMapped;
+      return res.next;
+    });
+    onStatusMessage(
+      smartMapped
+        ? `Menempel ${appliedCount} sel dari Excel (Nama dan/atau Kunci dipetakan otomatis).`
+        : `Menempel ${appliedCount} sel; dimensi lembar kerja otomatis disesuaikan.`,
+    );
+    return true;
+  };
+
   const handleGridPaste = (e: ClipboardEvent<HTMLDivElement>) => {
     const raw = e.clipboardData.getData("text/plain");
     if (!raw) return;
     const isMultiCell = raw.includes("\t") || raw.includes("\n") || raw.includes("\r");
     if (editing && !isMultiCell) return;
 
-    const matrix = parseTsvBlock(raw);
-    if (matrix.length === 0) return;
+    if (applyPastedMatrix(raw)) {
+      e.preventDefault();
+    }
+  };
 
-    e.preventDefault();
-    setEditing(null);
-    const startRow = activeCell.row === -1 && activeCell.col === -1 ? 0 : activeCell.row;
-    const startCol = activeCell.row === -1 && activeCell.col === -1 ? 0 : activeCell.col;
-    let appliedCount = 0;
-    onUpdateWorksheet((curr) => {
-      const res = pasteWorksheetBlock(curr, startRow, startCol, matrix);
-      appliedCount = res.applied;
-      return res.next;
-    });
-    onStatusMessage(`Menempel ${appliedCount} sel; dimensi lembar kerja otomatis disesuaikan.`);
+  const handleClipboardButtonPaste = async () => {
+    try {
+      if (navigator.clipboard?.readText) {
+        const text = await navigator.clipboard.readText();
+        if (text && applyPastedMatrix(text)) return;
+      }
+    } catch {
+      // Clipboard API denied; focus grid so user can Ctrl+V directly.
+    }
+    const firstCell = scrollRef.current?.querySelector<HTMLElement>('[data-grid-cell="0:-1"]');
+    firstCell?.focus();
+    onStatusMessage("Klik sel pertama lalu tekan Ctrl+V (atau Cmd+V) untuk menempel tabel dari Excel.");
   };
 
   const handleCellPointerDown = (
@@ -314,6 +375,9 @@ export function JamoviSpreadsheet({
     }
 
     const displayVal = getCellDisplayValue(row, col);
+    if (!isPhantom && row === -1 && col >= 0 && displayVal.trim() === "") {
+      return <span className="key-empty-tag">[Isi]</span>;
+    }
     if (isPhantom && !displayVal) {
       return <span className="grid-phantom-hint"></span>;
     }
@@ -324,15 +388,48 @@ export function JamoviSpreadsheet({
     row >= minRow && row <= maxRow && col >= minCol && col <= maxCol;
 
   return (
-    <div
-      ref={scrollRef}
-      className="table-wrapper jamovi-grid-wrapper"
-      tabIndex={0}
-      role="region"
-      aria-label="Lembar data spreadsheet peserta dan variabel"
-      onCopy={handleGridCopy}
-      onPaste={handleGridPaste}
-    >
+    <>
+      {(!hasActiveResponses || cellValidationSummary.invalidCount > 0) && (
+        <div
+          className={`grid-assist-bar${cellValidationSummary.invalidCount > 0 ? " is-warning" : ""}`}
+          role={cellValidationSummary.invalidCount > 0 ? "alert" : "region"}
+          aria-label="Panduan cepat lembar data"
+        >
+          {cellValidationSummary.invalidCount > 0 ? (
+            <div className="grid-assist-msg">
+              <WarningIcon />
+              <span>
+                <strong>{cellValidationSummary.invalidCount} isian perlu diperiksa:</strong>{" "}
+                {activeWarningLabel}
+              </span>
+            </div>
+          ) : (
+            <div className="grid-assist-msg">
+              <span>
+                Klik sel untuk mengetik, atau salin tabel dari Excel lalu klik tombol di samping / tekan{" "}
+                <code>Ctrl+V</code>.
+              </span>
+              <button
+                type="button"
+                className="btn btn-compact"
+                onClick={() => void handleClipboardButtonPaste()}
+              >
+                Tempel dari Excel
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div
+        ref={scrollRef}
+        className="table-wrapper jamovi-grid-wrapper"
+        tabIndex={0}
+        role="region"
+        aria-label="Lembar data spreadsheet peserta dan kunci soal"
+        onCopy={handleGridCopy}
+        onPaste={handleGridPaste}
+      >
       <table className="data-table jamovi-grid-table" role="grid" aria-rowcount={totalRows + 2}>
         <thead>
           <tr role="row">
@@ -340,7 +437,7 @@ export function JamoviSpreadsheet({
               #
             </th>
             <th scope="col" className="grid-name-head col-sticky-name">
-              Peserta / Variabel
+              Nama Peserta
             </th>
             {leftPad > 0 && (
               <th
@@ -389,8 +486,8 @@ export function JamoviSpreadsheet({
                       <button
                         type="button"
                         className="grid-var-type-badge"
-                        title="Buka Setup Variabel untuk butir ini"
-                        aria-label={`Atur variabel butir ${colMeta?.itemNumber ?? colIdx + 1}, saat ini ${
+                        title="Buka Atur Soal & Kunci untuk butir ini"
+                        aria-label={`Atur soal dan kunci butir ${colMeta?.itemNumber ?? colIdx + 1}, saat ini ${
                           resolvedKind === "multiple_choice" ? "Pilihan Ganda" : "Uraian"
                         }`}
                         onClick={(e) => {
@@ -416,7 +513,7 @@ export function JamoviSpreadsheet({
 
           <tr role="row" className="frozen-key-row">
             <th scope="row" className="grid-corner-cell col-sticky-idx">
-              Ref
+              Kunci
             </th>
             <td
               role="gridcell"
@@ -441,15 +538,23 @@ export function JamoviSpreadsheet({
               const isPhantomCol = colIdx >= worksheet.columns.length;
               const isActive = activeCell.row === -1 && activeCell.col === colIdx;
               const isSelected = isCellSelected(-1, colIdx);
+              const isMissingKey =
+                !isPhantomCol && (worksheet.columns[colIdx]?.referenceValue ?? "").trim() === "";
               return (
                 <td
                   key={colItem.key}
                   role="gridcell"
                   data-grid-cell={`-1:${colIdx}`}
                   tabIndex={isActive ? 0 : -1}
+                  aria-invalid={isMissingKey ? "true" : undefined}
+                  aria-label={
+                    isMissingKey
+                      ? `Kunci atau skor ideal butir ${worksheet.columns[colIdx]?.itemNumber ?? colIdx + 1} belum diisi`
+                      : undefined
+                  }
                   className={`grid-data-cell mono${isPhantomCol ? " is-phantom" : ""}${
                     isSelected ? " is-selected" : ""
-                  }${isActive ? " is-active" : ""}`}
+                  }${isActive ? " is-active" : ""}${isMissingKey ? " has-cell-warning" : ""}`}
                   style={{ width: `${GRID_COL_WIDTH}px`, minWidth: `${GRID_COL_WIDTH}px` }}
                   onPointerDown={(e) => handleCellPointerDown(-1, colIdx, e)}
                   onPointerEnter={() => {
@@ -574,6 +679,7 @@ export function JamoviSpreadsheet({
           )}
         </tbody>
       </table>
-    </div>
+      </div>
+    </>
   );
 }

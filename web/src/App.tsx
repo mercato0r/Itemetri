@@ -10,7 +10,14 @@ import {
   loadSample,
   mergeExam,
 } from "./api/client";
-import { MergeDialog, SaveWorksheetDialog, type WorksheetSaveFormat } from "./components/Dialogs";
+import {
+  MergeDialog,
+  NewWorksheetDialog,
+  type NewWorksheetParams,
+  SaveWorksheetDialog,
+  type WorksheetSaveFormat,
+} from "./components/Dialogs";
+import { PretestPosttestModal } from "./components/PretestPosttestModal";
 import { ImportMapperDialog } from "./components/ImportMapperDialog";
 import { JamoviRibbon, type ResultModuleToggles } from "./components/JamoviRibbon";
 import { type CellCoord, JamoviSpreadsheet } from "./components/JamoviSpreadsheet";
@@ -19,7 +26,9 @@ import { ResultsCanvas } from "./components/ResultsCanvas";
 import { VariableSetupDrawer } from "./components/VariableSetupDrawer";
 import { useTheme } from "./hooks/useTheme";
 import { useUndoRedo } from "./hooks/useUndoRedo";
+import { parseLocalizedNumberList } from "./utils/clipboard";
 import { saveBlobWithDialog } from "./utils/fileSave";
+import type { ExportableCardSpec } from "./utils/resultExport";
 import {
   addWorksheetColumn,
   addWorksheetRow,
@@ -35,6 +44,7 @@ import type {
   AnalysisOptions,
   AnalysisResponse,
   CompatibilityDiff,
+  ExamPayload,
   MergeAxis,
   SampleFileInfo,
   ScoringWeights,
@@ -68,7 +78,7 @@ export function App() {
     showDistractors: true,
     showInterpretation: true,
     showModeComparison: false,
-    useCorrectedItemTotal: false,
+    useCorrectedItemTotal: true,
   });
   const [modules, setModules] = useState<ResultModuleToggles>({
     reliability: true,
@@ -76,13 +86,15 @@ export function App() {
     distractors: true,
     charts: true,
     comparison: false,
-    options: true,
+    options: false,
   });
 
   const [samples, setSamples] = useState<SampleFileInfo[]>([]);
   const [activeCell, setActiveCell] = useState<CellCoord>({ row: 0, col: 0 });
   const [selectionAnchor, setSelectionAnchor] = useState<CellCoord>({ row: 0, col: 0 });
   const [varDrawerOpen, setVarDrawerOpen] = useState(false);
+  const [focusQuickKeySignal, setFocusQuickKeySignal] = useState(0);
+  const [allResultsSpec, setAllResultsSpec] = useState<ExportableCardSpec | null>(null);
 
   const [loadingMsg, setLoadingMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -90,9 +102,12 @@ export function App() {
   const [liveStatus, setLiveStatus] = useState("");
   const [splitPercent, setSplitPercent] = useState(50);
 
+  const [newWsOpen, setNewWsOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [saveDataOpen, setSaveDataOpen] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
+  const [pretestPosttestOpen, setPretestPosttestOpen] = useState(false);
+  const [itemIndicators, setItemIndicators] = useState<string[]>([]);
 
   const requestAbortRef = useRef<AbortController | null>(null);
   const gridContainerRef = useRef<HTMLDivElement | null>(null);
@@ -119,6 +134,10 @@ export function App() {
           resetWorksheet(examPayloadToWorksheet(res.exam));
           setAnalysis(res.analysis);
           setOptions(res.analysis.options);
+          setDisplayFlags((prev) => ({
+            ...prev,
+            useCorrectedItemTotal: res.analysis!.options.mode === "standard_corrected",
+          }));
         }
       })
       .catch(() => {
@@ -155,7 +174,9 @@ export function App() {
   }, [canUndo, canRedo, undo, redo]);
 
   useEffect(() => {
-    if (!compiled.hasActiveResponses) {
+    if (!compiled.hasActiveResponses || compiled.missingKeyItemNumbers.length > 0) {
+      requestAbortRef.current?.abort();
+      setLoadingMsg(null);
       setAnalysis(null);
       setDiff(null);
       return;
@@ -184,8 +205,13 @@ export function App() {
       setLoadingMsg("Menghitung analisis butir soal...");
       setErrorMsg(null);
 
+      const examWithIndicators: ExamPayload =
+        itemIndicators.some((s) => s.trim().length > 0)
+          ? { ...compiled.exam, item_indicators: itemIndicators }
+          : compiled.exam;
+
       const tasks: Promise<void>[] = [
-        analyzeExam(compiled.exam, normalizedOptions, controller.signal).then(setAnalysis),
+        analyzeExam(examWithIndicators, normalizedOptions, controller.signal).then(setAnalysis),
       ];
       if (modules.comparison) {
         tasks.push(
@@ -213,7 +239,7 @@ export function App() {
     }, 180);
 
     return () => window.clearTimeout(timer);
-  }, [compiled, options, modules.comparison]);
+  }, [compiled, options, modules.comparison, itemIndicators]);
 
   const applyLoadedExam = (
     nextExam: typeof compiled.exam,
@@ -225,6 +251,10 @@ export function App() {
     setAnalysis(nextAnalysis);
     setDiff(null);
     setOptions(nextAnalysis.options);
+    setDisplayFlags((prev) => ({
+      ...prev,
+      useCorrectedItemTotal: nextAnalysis.options.mode === "standard_corrected",
+    }));
     setActiveCell({ row: 0, col: 0 });
     setSelectionAnchor({ row: 0, col: 0 });
     setErrorMsg(null);
@@ -331,16 +361,51 @@ export function App() {
     );
   };
 
-  const handleResetBlank = () => {
-    resetWorksheet(createBlankWorksheet());
+  const handleCreateNewWorksheet = (params: NewWorksheetParams) => {
+    let nextWs: WorksheetState;
+    if (params.kind === "multiple_choice") {
+      nextWs = createBlankWorksheet(params.subjectCount, params.itemCount, {
+        mode: "multiple_choice",
+        optionCount: params.optionCount,
+        quickKeys: params.quickKeys,
+      });
+    } else {
+      const parsed = parseLocalizedNumberList(params.essayIdeal);
+      const tokens = parsed.valid ? parsed.values.filter((n) => n > 0) : [];
+
+      nextWs = createBlankWorksheet(params.subjectCount, params.itemCount, {
+        mode: "essay",
+        defaultReference: tokens.length === 1 ? String(tokens[0]) : "",
+      });
+
+      if (tokens.length > 1) {
+        nextWs = {
+          ...nextWs,
+          columns: nextWs.columns.map((c, idx) => ({
+            ...c,
+            referenceValue: tokens[idx] !== undefined ? String(tokens[idx]) : "",
+          })),
+        };
+      }
+    }
+
+    resetWorksheet(nextWs);
     setAnalysis(null);
     setDiff(null);
     setOptions(DEFAULT_OPTIONS);
-    setActiveCell({ row: 0, col: 0 });
-    setSelectionAnchor({ row: 0, col: 0 });
+    setActiveCell({ row: 0, col: -1 });
+    setSelectionAnchor({ row: 0, col: -1 });
+    setVarDrawerOpen(false);
     setErrorMsg(null);
     setMergeNotice(null);
-    setLiveStatus("Lembar kerja baru kosong disiapkan.");
+    setLiveStatus(
+      `Lembar kerja ${params.kind === "multiple_choice" ? "Pilihan Ganda" : "Uraian"} (${params.subjectCount} peserta, ${params.itemCount} butir) disiapkan.`,
+    );
+  };
+
+  const handleOpenQuickKeySetup = () => {
+    setVarDrawerOpen(true);
+    setFocusQuickKeySignal((n) => n + 1);
   };
 
   const handleChangeWeights = (weights: ScoringWeights) => {
@@ -392,7 +457,9 @@ export function App() {
         activeSubjectCount={activeSubjectCount}
         totalRowsCount={worksheet.rows.length}
         itemCount={worksheet.columns.length}
+        missingKeyCount={compiled.missingKeyItemNumbers.length}
         summaryKind={compiled.summaryKind}
+        allResultsSpec={allResultsSpec}
         canUndo={canUndo}
         canRedo={canRedo}
         canDeleteRow={worksheet.rows.length > 1}
@@ -402,7 +469,7 @@ export function App() {
         varDrawerOpen={varDrawerOpen}
         modules={modules}
         resolvedScheme={resolvedScheme}
-        onNewWorksheet={handleResetBlank}
+        onNewWorksheet={() => setNewWsOpen(true)}
         onOpenImport={() => setImportOpen(true)}
         onOpenSaveData={() => setSaveDataOpen(true)}
         onToggleTheme={toggleLightDark}
@@ -425,8 +492,10 @@ export function App() {
           }));
         }}
         onOpenMerge={() => setMergeOpen(true)}
+        onOpenPretestPosttest={() => setPretestPosttestOpen(true)}
         onToggleVarDrawer={() => setVarDrawerOpen((prev) => !prev)}
         onToggleModule={handleToggleModule}
+        onStatusMessage={setLiveStatus}
       />
 
       {loadingMsg && (
@@ -466,22 +535,31 @@ export function App() {
           className="workspace-grid"
           style={{ "--split-left": `${splitPercent}%` } as CSSProperties}
         >
-          <section className="pane-left no-print" aria-label="Panel spreadsheet data dan variabel">
+          <section className="pane-left no-print" aria-label="Panel spreadsheet data dan kunci soal">
             <VariableSetupDrawer
               open={varDrawerOpen}
               worksheet={worksheet}
               colIndex={selectedItemIndex}
               effectiveKinds={compiled.effectiveKinds}
+              missingKeyItemNumbers={compiled.missingKeyItemNumbers}
+              itemIndicators={itemIndicators}
+              focusQuickKeySignal={focusQuickKeySignal}
               onSelectColumn={(colIdx) => {
                 setActiveCell({ row: -1, col: colIdx });
                 setSelectionAnchor({ row: -1, col: colIdx });
               }}
               onUpdateWorksheet={commitWorksheet}
+              onSaveIndicators={(next) => {
+                setItemIndicators(next);
+                setMergeNotice("Pemetaan indikator butir berhasil diperbarui.");
+              }}
+              onStatusMessage={setLiveStatus}
               onClose={() => setVarDrawerOpen(false)}
             />
 
             <JamoviSpreadsheet
               worksheet={worksheet}
+              hasActiveResponses={compiled.hasActiveResponses}
               effectiveKinds={compiled.effectiveKinds}
               activeCell={activeCell}
               selectionAnchor={selectionAnchor}
@@ -518,6 +596,7 @@ export function App() {
               worksheet={worksheet}
               exam={compiled.exam}
               hasActiveResponses={compiled.hasActiveResponses}
+              missingKeyItemNumbers={compiled.missingKeyItemNumbers}
               summaryKind={compiled.summaryKind}
               effectiveKinds={compiled.effectiveKinds}
               analysis={analysis}
@@ -533,28 +612,55 @@ export function App() {
               }}
               onLoadSample={(name) => void handleLoadSample(name)}
               onOpenImport={() => setImportOpen(true)}
+              onOpenNewWorksheet={() => setNewWsOpen(true)}
+              onOpenQuickKeySetup={handleOpenQuickKeySetup}
+              onAllResultsSpecChange={setAllResultsSpec}
               onChangeOptions={setOptions}
               onChangeWeights={handleChangeWeights}
               onChangeFlags={setDisplayFlags}
+              onCloseOptions={() => handleToggleModule("options")}
               onStatusMessage={setLiveStatus}
             />
           </section>
         </div>
       </main>
 
+      <NewWorksheetDialog
+        open={newWsOpen}
+        onClose={() => setNewWsOpen(false)}
+        onCreate={handleCreateNewWorksheet}
+      />
+
       <ImportMapperDialog
         open={importOpen}
+        hasActiveResponses={compiled.hasActiveResponses}
         samples={samples}
         onClose={() => setImportOpen(false)}
         onDirectAnaImport={handleDirectAnaImport}
         onLoadSample={(name) => void handleLoadSample(name)}
-        onMappedLoaded={(res) =>
+        onMappedLoaded={(res) => {
+          if (res.exam.has_missing_keys) {
+            skipNextAutoAnalyze.current = false;
+            resetWorksheet(examPayloadToWorksheet(res.exam));
+            setAnalysis(null);
+            setDiff(null);
+            setActiveCell({ row: -1, col: 0 });
+            setSelectionAnchor({ row: -1, col: 0 });
+            setVarDrawerOpen(true);
+            setFocusQuickKeySignal((n) => n + 1);
+            setErrorMsg(null);
+            setMergeNotice(null);
+            setLiveStatus(
+              `Berkas ${res.metadata.filename} dimuat. Lengkapi kunci jawaban atau skor ideal untuk mulai menghitung.`,
+            );
+            return;
+          }
           applyLoadedExam(
             res.exam,
             res.analysis,
             `Berkas ${res.metadata.filename} berhasil diimpor.`,
-          )
-        }
+          );
+        }}
       />
 
       <SaveWorksheetDialog
@@ -568,6 +674,15 @@ export function App() {
         samples={samples}
         onClose={() => setMergeOpen(false)}
         onMerge={handleMerge}
+      />
+
+      <PretestPosttestModal
+        open={pretestPosttestOpen}
+        activeExam={compiled.exam}
+        options={options}
+        samples={samples}
+        onClose={() => setPretestPosttestOpen(false)}
+        onStatusMessage={setMergeNotice}
       />
     </div>
   );

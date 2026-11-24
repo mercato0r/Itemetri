@@ -35,6 +35,8 @@ export interface ExamPayload {
   ideal_scores?: number[];
   item_numbers?: number[];
   essay_subjects?: EssaySubject[];
+  item_indicators?: string[];
+  has_missing_keys?: boolean;
 }
 
 export interface AnalysisOptions {
@@ -42,6 +44,7 @@ export interface AnalysisOptions {
   upper_lower_percent: number;
   use_weighted_score: boolean;
   essay_difficulty_scope: EssayDifficultyScope | null;
+  passing_score?: number | null;
 }
 
 export interface ValidationIssue {
@@ -106,6 +109,14 @@ export interface DistractorItem {
   distractor_count?: number;
 }
 
+export interface ItemCriterionCheck {
+  criterion: string;
+  actual_label: string;
+  threshold_label: string;
+  passed: boolean;
+  action_hint: string;
+}
+
 export interface ItemVerdict {
   item_index: number;
   item_number: number;
@@ -114,6 +125,8 @@ export interface ItemVerdict {
   suspected_miskey?: boolean;
   corrected_status?: ItemVerdictStatus | null;
   corrected_reasons?: string[];
+  checks?: ItemCriterionCheck[];
+  corrected_checks?: ItemCriterionCheck[];
 }
 
 export interface EssayItemUpperLower {
@@ -170,6 +183,46 @@ export interface ReliabilityResult {
   kr21: number | null;
 }
 
+export interface ScoreDistributionSummary {
+  skewness: number | null;
+  skew_label: "Simetris" | "Condong Kanan (Positif)" | "Condong Kiri (Negatif)" | "Tidak Terdefinisi";
+  iqr: number | null;
+  q1: number | null;
+  q3: number | null;
+  mean_percent: number | null;
+  effect_flag: "normal" | "floor" | "ceiling";
+  passing_score: number | null;
+  pass_count: number | null;
+  pass_percent: number | null;
+  narrative: string;
+}
+
+export interface ExecutiveSummary {
+  quality_tier: "Baik" | "Cukup" | "Perlu Perbaikan";
+  headline: string;
+  reliability_narrative: string;
+  item_action_narrative: string;
+  student_summary_narrative: string;
+  accept_count: number;
+  revise_count: number;
+  reject_count: number;
+  miskey_items: number[];
+  revise_items: number[];
+  reject_items: number[];
+}
+
+export interface IndicatorSummaryItem {
+  indicator: string;
+  item_count: number;
+  item_numbers: number[];
+  mean_tk_percent: number | null;
+  mean_dp_percent: number | null;
+  accept_count: number;
+  revise_count: number;
+  reject_count: number;
+  mastery_label: string;
+}
+
 export interface AnalysisResponse {
   kind: ExamKind;
   subject_count: number;
@@ -207,6 +260,9 @@ export interface AnalysisResponse {
     kr20: string | null;
     kr21: string | null;
   };
+  executive_summary?: ExecutiveSummary;
+  score_distribution?: ScoreDistributionSummary;
+  indicator_summary?: IndicatorSummaryItem[];
 }
 
 export interface MergeSummary {
@@ -283,6 +339,9 @@ export interface SuggestedMapping {
   item_col_indices: number[];
   inferred_kind: ExamKind;
   default_key_or_ideal: string;
+  ignored_col_indices?: number[];
+  ignored_col_reasons?: Record<number, string>;
+  missing_key_warning?: boolean;
 }
 
 export interface TabularPreviewResponse {

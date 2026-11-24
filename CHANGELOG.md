@@ -9,6 +9,82 @@ Format changelog mengikuti standar [Keep a Changelog](https://keepachangelog.com
 ## [Unreleased]
 
 ### Ditambahkan
+- **Halaman HTML Panduan Pengguna terintegrasi *build* (`web/scripts/buildUserManual.mjs`, `web/vite.config.ts`, `JamoviRibbon.tsx`, `USER_MANUAL.md`)**:
+  - Menambahkan plugin Vite `userManualVitePlugin()` (memasang `marked` dan `katex` khusus di `devDependencies` tanpa membebani bundle JS React utama) untuk mengompilasi `USER_MANUAL.md` saat pengembangan (`vite dev`) maupun *build* produksi menjadi halaman statis mandiri `dist/user_manual/index.html` dan `dist/user_manual.html` (siap *Pretty URLs* Cloudflare Pages di `/user_manual`).
+  - Menyusun halaman HTML dengan MathML mandiri (`katex` *output: mathml*), kotak panggilan GitHub Alert (`Penting`/`Catatan`), tabel bergaya APA, sidebar Daftar Isi lengket dengan filter pencarian dan penyorot bab aktif, mode cetak/PDF `@media print`, serta sinkronisasi tema Terang/Gelap melalui `localStorage["itemetri-color-scheme"]`.
+  - Menambahkan `HelpCircleIcon` (`web/src/components/Icons.tsx`) serta tautan **`? Panduan`** di bilah kanan atas `JamoviRibbon.tsx` (`href="./user_manual/" target="_blank" rel="noopener noreferrer"`) beserta penyelarasan Daftar Isi dan label antarmuka di `USER_MANUAL.md`.
+  - Menambahkan unit test `buildUserManualHtml` di `web/tests/run_tests.mjs` (`15/15` test lulus) untuk memvalidasi rendering MathML, keutuhan seluruh tautan *anchor* internal, serta nol karakter *em dash* dan *en dash*.
+- **Konsolidasi antarmuka 5 Grup Flow untuk mengurangi langkah dan memperjelas keputusan (`docs/UI_CONSOLIDATION_REVIEW.md`, `ResultsCanvas.tsx`, `JamoviRibbon.tsx`, `ImportMapperDialog.tsx`, `VariableSetupDrawer.tsx`)**:
+  - Menambahkan mode **deteksi ringkas 1 baris** pada `ImportMapperDialog.tsx` saat kolom soal berhasil terdeteksi, dengan lipatan tombol `Sesuaikan Kolom & Baris` untuk pemetaan manual dan tabel pratinjau.
+  - Menggabungkan fitur pemetaan **Indikator / TP Butir** sebagai tab kedua di dalam drawer `VariableSetupDrawer.tsx` (`Atur Soal & Kunci`), serta menambahkan sakelar **`Kolom teknis lengkap`** pada tabel `Analisis Butir Soal` di `ResultsCanvas.tsx`.
+  - Menambahkan 3 ubin metrik inti (**Reliabilitas Utama**, **Rata-rata Kelas**, **Kelayakan Butir**) langsung di dalam kartu `Ringkasan Eksekutif Evaluasi`, serta kontrol lipat/buka (`.card-collapse-btn`) pada kartu hasil di `ResultsCanvas.tsx`.
+  - Menambahkan prop `embedded` pada `ItemQualityMatrix.tsx` untuk menyatukan peta warna butir tepat di atas tabel `Analisis Butir Soal`, dan prop `primaryDownload` pada `CardExportBar.tsx` untuk mempertegas tombol primer **`Ekspor Laporan`** di `JamoviRibbon.tsx`.
+
+### Diubah
+- **Pengalaman *above the fold* & penyederhanaan Ribbon (`App.tsx`, `OptionsDrawer.tsx`, `JamoviRibbon.tsx`, `Dialogs.tsx`)**:
+  - Mengatur `OptionsDrawer` tertutup secara bawaan (`modules.options = false`) agar `Ringkasan Eksekutif Evaluasi` tampil di posisi teratas begitu hasil tersedia, disertai tombol **`Pengaturan`** dan lipatan `<details>` untuk opsi penyekoran serta metodologi lanjutan.
+  - Menyelaraskan mode bawaan `Standar Terkoreksi` dengan `displayFlags.useCorrectedItemTotal = true` (otomatis menjadi `false` saat memilih `ANATES Klasik`) agar narasi ringkasan dan kolom korelasi butir tampil konsisten.
+  - Menghapus 5 tombol toggle modul biru (`Reliabilitas`, `Analisis Butir`, `Pengecoh`, `Grafik`, `Opsi`) dan memindahkan kontrol tambah/hapus baris-kolom ke dropdown **`Baris & Kolom`** di `JamoviRibbon.tsx`.
+  - Menghapus input `Jumlah peserta awal` pada `NewWorksheetDialog` (`Dialogs.tsx`, otomatis menyediakan 15 baris yang bertambah dinamis) serta menghilangkan tombol kembar `Tempel dari Excel` di kartu kanan dan duplikasi daftar sampel saat *Empty State* aktif.
+  - Mengintegrasikan kartu **`Detail Butir & Pengecoh`** dan tabel *Analisis Butir* dengan **6 kolom inti** default (`No`, `Kunci/Ideal`, `TK(%)`, `DP(%)`, `r_corr`, `Keputusan`), menghapus baris `<tfoot>` duplikat, menghapus kartu bawah grafik opsi kembar di `ChartsView.tsx`, serta mempertahankan ekspor SVG/XLSX/PDF/Word lengkap melalui `allResultsSpec`.
+
+### Diperbaiki
+- **Aksesibilitas modal *Pretest-Posttest*, penomoran/diksi Indonesia, & spesifisitas hover tombol primer (`PretestPosttestModal.tsx`, `Dialogs.tsx`, `verdict.ts`, `ChartsView.tsx`, `MethodNotes.tsx`, `workspace.css`)**:
+  - Membungkus `PretestPosttestModal` dengan komponen standar `ModalFrame` (`showModal()`, fokus modal, dan `Escape`) serta membersihkan kode internal `(TFGabungDuaFile)` dari judul `MergeDialog`.
+  - Menghilangkan seluruh karakter *en dash* (`\u2013`) pada `PretestPosttestModal.tsx`, `ChartsView.tsx`, dan `verdict.ts` (`30% s.d. 70%`), serta menyunting ejaan baku KBBI dan gaya bahasa Indonesia pada `MethodNotes.tsx` (`efektivitas`, `Jika...`, `Kunci`).
+  - Memperbaiki spesifisitas aturan `.btn:not(...):hover` pada `web/src/styles/workspace.css` agar tombol primer **`Ekspor Laporan`** (`.btn-primary`) dan tab aktif tetap menjaga kontras aksen saat diarahkan kursor maupun difokuskan.
+
+### Dihapus
+- Menghapus modal terpisah `web/src/components/IndicatorMapperModal.tsx` (fungsinya dipindah ke tab kedua `VariableSetupDrawer.tsx`).
+
+---
+
+- **Perbaikan UX ramah guru & dosen awam serta dokumentasi arah desain (`DESIGN.md`, `docs/WIREFRAME_USER_FLOW.md`, `docs/UX_AUDIT_ITEMETRI.md`)**:
+  - Menambahkan `DESIGN.md` berisi sistem token warna WCAG AA, tipografi, skala spasi, dial (`ENERGY 1 / RHYTHM 2 / MOTION 1`), dan alasan desain satu baris (`R-31`).
+  - Menambahkan modal **`NewWorksheetDialog`** di `web/src/components/Dialogs.tsx` untuk memilih jenis soal (Pilihan Ganda atau Uraian), dimensi awal, jumlah pilihan jawaban, serta input cepat kunci/skor ideal sejak awal.
+  - Menambahkan **`Input Cepat Kunci PG`** (ketik beruntun `ABCD...`) dan **`Input Cepat Skor Ideal Uraian`** (angka seragam atau daftar) pada panel **Atur Soal & Kunci** (`web/src/components/VariableSetupDrawer.tsx`).
+  - Menambahkan pembangkit template Excel siap pakai (`exportTemplateXlsxBytes` di `web/src/standalone/io/tabular.ts`, `generateTemplateXlsx` di `web/src/standalone/client.ts`) beserta tombol unduh **Template PG (.xlsx)** dan **Template Uraian (.xlsx)** pada `ImportMapperDialog.tsx` dan *Empty State*.
+  - Menambahkan ekspor **Tabel Excel (.xlsx)** untuk kartu dan laporan analisis lengkap (`buildSpecXlsxBytes` & `downloadCardAsXlsx` di `web/src/utils/resultExport.ts`, opsi menu di `CardExportBar.tsx`, serta tombol **Ekspor Laporan** langsung di `JamoviRibbon.tsx`).
+  - Menambahkan komponen **`HelpToggletip`** (`web/src/components/HelpToggletip.tsx`) yang aksesibel dengan keyboard (`Escape`) untuk menjelaskan istilah statistik (`Alpha Cronbach`, `KR-20`, `DP(%)`, `TK(%)`, `r`, `α(-j)`, `Kelompok Unggul & Asor`, korelasi terkoreksi) dalam bahasa awam, serta tombol filter cepat **Rekap Keputusan** (`Semua`, `Diterima`, `Perlu Revisi`, `Ditolak`) di atas tabel analisis butir pada `ResultsCanvas.tsx`.
+  - Menambahkan `parseLocalizedNumber`, `parseLocalizedNumberList` (`web/src/utils/clipboard.ts`), dan `smartPasteWorksheet` (`web/src/model/worksheet.ts`) untuk mendukung koma desimal lokal Indonesia (`7,5`), kapitalisasi otomatis huruf PG, dan pemetaan otomatis blok Excel yang menyertakan baris Header/Kunci dan kolom Nama.
+  - Memperluas pengujian otomatis di `web/tests/run_tests.mjs` menjadi `14` test (validasi desimal koma, gerbang `missingKeyItemNumbers`, `smartPasteWorksheet`, deteksi kolom sampah Google Forms/LMS, *round-trip* template & laporan `.xlsx`, serta pemindaian nol karakter em dash).
+
+### Diubah
+- **Pencegahan salah kunci jawaban diam-diam (`worksheet.ts`, `tabular.ts`, `ResultsCanvas.tsx`, `App.tsx`)**:
+  - Lembar kerja baru dan berkas CSV/XLSX tanpa baris kunci kini membiarkan acuan kunci kosong (`""`, ditandai `[Isi]` pada baris `Kunci`) serta menahan perhitungan melalui kartu **Kunci Jawaban / Skor Ideal Belum Lengkap** hingga seluruh kunci terisi.
+- **Impor cerdas & penyederhanaan bilah alat (`tabular.ts`, `ImportMapperDialog.tsx`, `JamoviRibbon.tsx`, `JamoviSpreadsheet.tsx`)**:
+  - `previewTabularBytes` otomatis mengenali kolom `Nama Lengkap`/`Peserta` dan mengabaikan kolom metadata Google Forms/LMS (`Timestamp`, `Email Address`, `Score`, `NISN`, `Kelas`, dll.); modal impor juga otomatis mereset berkas saat ditutup.
+  - Menyederhanakan *Empty State* menjadi 3 jalur tugas utama, mengganti `Setup Variabel` menjadi **Atur Soal & Kunci**, mengelompokkan fitur lanjutan ke menu **Alat Lanjutan** di Ribbon, serta menampilkan bilah peringatan validasi sel secara langsung di atas tabel `JamoviSpreadsheet.tsx`.
+
+### Diperbaiki
+- **Tumpang tindih modal Pemetaan Indikator/TP & duplikasi tombol laporan (`IndicatorMapperModal.tsx`, `JamoviRibbon.tsx`, `ResultsCanvas.tsx`, `Dialogs.tsx`)**:
+  - Membungkus `IndicatorMapperModal` dengan `ModalFrame` (`wide`) agar dibuka melalui `dialog.showModal()` pada *Top Layer* dengan backdrop modal, sehingga tidak lagi tertimpa header tabel spreadsheet `position: sticky`.
+  - Menghapus tombol duplikat **Unduh Laporan** dan **Salin Semua** pada panel hasil `ResultsCanvas.tsx`, serta menamakan ulang tombol **Ekspor Laporan** di headbar `JamoviRibbon.tsx` menjadi **Simpan Laporan** (bersama **Salin Laporan**) dan memperbarui teks petunjuk di `SaveWorksheetDialog` (`Dialogs.tsx`).
+- **Token CSS tidak terdefinisi, kontras WCAG AA, & tata letak Ribbon mobile (`web/src/styles/workspace.css`, `web/src/utils/resultExport.ts`)**:
+  - Mengganti variabel CSS `--bg-canvas` dan `--danger` yang tidak terdefinisi menjadi `--bg-subtle`, `--err`, dan `--err-bg` agar lencana peringatan dan matriks butir memenuhi kontras WCAG AA di tema Terang dan Gelap.
+  - Menambahkan `flex-wrap: wrap` dan penataan ulang `.ribbon-left` / `.ribbon-actions` pada `@media (max-width: 639px)` agar judul `Itemetri` dan tombol Ribbon tidak saling bertumpuk di layar `375px`.
+  - Mengganti karakter em dash pada footer ekspor PDF di `web/src/utils/resultExport.ts`.
+
+### Ditambahkan
+- **Peningkatan wawasan guru (Ringkasan Eksekutif, Diagnosis Butir, Matriks Kualitas, Distribusi Skor, Indikator, Pretest–Posttest, & Layout PDF)**:
+  - Menambahkan `web/src/standalone/engine/summary.ts` (`computeExecutiveSummary`, `computeScoreDistributionSummary`) untuk menghasilkan kesimpulan kualitas instrumen otomatis dan interpretasi bentuk distribusi skor (*skewness*, *IQR*, *floor/ceiling effect*, serta ketuntasan KKM opsional di `OptionsDrawer.tsx`).
+  - Memperluas `evaluateItemVerdicts()` di `web/src/standalone/engine/verdict.ts` dengan `checks` terstruktur (nilai aktual vs ambang batas & saran tindak lanjut) serta panel **Diagnosis Keputusan Butir** pada `ResultsCanvas.tsx`.
+  - Menambahkan `web/src/components/ItemQualityMatrix.tsx` untuk memindai status `Terima`/`Revisi`/`Tolak`/dugaan salah kunci seluruh butir secara visual dan interaktif.
+  - Menambahkan `web/src/standalone/engine/indicators.ts` + `web/src/components/IndicatorMapperModal.tsx` untuk pemetaan butir ke indikator/tujuan pembelajaran dan rekap penguasaan per indikator.
+  - Menambahkan `web/src/standalone/engine/pretestPosttest.ts` + `web/src/components/PretestPosttestModal.tsx` untuk membandingkan data Pretest vs Posttest (N-Gain Hake dan uji-*t* berpasangan).
+  - Memperbaiki ekspor PDF di `web/src/utils/resultExport.ts` (*keep-with-next* mencegah *orphaned heading*, *word-wrap* sel tabel panjang, *zebra striping*, dan footer nomor halaman).
+- **Hardening I/O, sanitasi formula, & unit test terisolasi di `web/`**:
+  - Menambahkan validasi batas offset ZIP, batas ukuran dekompresi (`50 MB`), batas dimensi XLSX (`50.000` baris / `5.000` kolom), dan deteksi pesan ramah format `.xls` lama pada `web/src/standalone/io/xlsxZip.ts`.
+  - Menambahkan pemindai token XML yang mendukung blok `<![CDATA[...]]>` dan nilai atribut berisi `>` pada `web/src/standalone/io/xmlAna.ts`.
+  - Menambahkan sanitasi *formula injection* (prefiks `'` pada sel string berawalan `=`, `+`, `-`, `@`, `\t`, `\r`) saat ekspor `.csv` dan `.xlsx` pada `web/src/standalone/io/tabular.ts`.
+  - Menambahkan skrip `npm test` (`web/tests/run_tests.mjs`) untuk menguji model lembar kerja, ekspor HTML/APA, serta kasus korup/batas I/O (`6 passed`).
+- **Mesin perhitungan web TypeScript murni (`web/src/standalone/`) sebagai mesin utama**:
+  - Memindahkan seluruh perhitungan CTT (penyekoran PG/Uraian, peringkat, kelompok Unggul-Asor + uji-*t* Welch, tingkat kesukaran, daya pembeda, korelasi butir-total & terkoreksi, pengecoh, Belah Dua Spearman-Brown, Cronbach $\alpha$, $\alpha_{-j}$, KR-20/KR-21, keputusan butir, audit selisih mode, dan penggabungan berkas) serta pembaca/penulis `.ana` XML, `.csv`, dan `.xlsx` ke TypeScript murni tanpa CDN eksternal maupun WebAssembly (`100%` lolos CSP `'self'`).
+  - Menambahkan skrip uji banding diferensial `scripts/verify_js_python_parity.mjs` terhadap `legacy_python/src` (`23` skenario uji, `14.080` pemeriksaan, selisih maksimum $3{,}31 \times 10^{-14}$).
+- **Dukungan arsitektur dua aplikasi (Itemetri Web *stateless* & Desktop Windows)**:
+  - Menambahkan mode deployment `web_public` (`ITEMETRI_DEPLOY_MODE=web_public`) pada `src/itemetri/web/app.py` dan `src/itemetri/web/api.py` (disertai `ITEMETRI_ALLOWED_ORIGINS` untuk CORS), yang menonaktifkan pemindaian berkas `.ana` lokal di server, menonaktifkan `startup_exam_path`, serta menghapus ketergantungan sesi global `session_exam` pada `/api/analyze`, `/api/samples`, `/api/merge`, dan `/api/session/patch`.
+  - Menambahkan *entrypoint* siap *shared hosting*: `src/itemetri/web/asgi.py` (ASGI) dan `passenger_wsgi.py` (WSGI via `a2wsgi`), serta `requirements-web.txt` khusus dependensi server web tanpa komponen GUI desktop.
+  - Menambahkan pengujian isolasi `test_web_public_stateless_isolation` dan `test_asgi_entrypoint_uses_web_public` di `tests/test_web_api.py` (`80 passed`).
 - **Dialog "Simpan Sebagai" (*Save As*) asli pada *web wrapper* desktop & peramban**:
   - Menambahkan `_DesktopBridge` (`js_api` `save_file`) pada `src/itemetri/desktop.py` yang membuka dialog *Save As* Windows via `pywebview` (`create_file_dialog`), mengingat folder simpan terakhir, dan menulis berkas langsung ke lokasi pilihan pengguna.
   - Menambahkan *helper* terpadu `saveBlobWithDialog` di `web/src/utils/fileSave.ts` untuk memilih jalur `window.pywebview.api.save_file` (desktop), `window.showSaveFilePicker` (peramban modern), atau *fallback* `<a download>`, lengkap dengan penanganan status pembatalan.
@@ -16,9 +92,20 @@ Format changelog mengikuti standar [Keep a Changelog](https://keepachangelog.com
   - Memperbarui `USER_MANUAL.md` dengan identitas **Itemetri**, pernyataan perangkat lunak *open source* independen berlisensi MIT yang tidak berafiliasi dengan pencipta ANATES (serta dukungan interoperabilitas `.ana`), `Daftar Isi` bertautan 36 *anchor*, dan mengonversinya menjadi `USER_MANUAL.pdf` (14 halaman A4).
 
 ### Diubah
+- **Penyelarasan sumber skor & label rentang bin histogram (`web/src/components/ChartsView.tsx`)**:
+  - Menyelaraskan sumber skor histogram pilihan ganda dengan `analysis.scoring.uses_weighted_score` (`weighted_score` saat pembobotan aktif, `raw_score` saat tidak aktif) agar konsisten dengan statistik deskriptif dan urutan tabel skor peserta.
+  - Mengubah label sumbu-X dan tooltip histogram dari batas bawah bin yang dibulatkan (`{bin.low.toFixed(0)}`) menjadi rentang skor aktual peserta yang masuk ke masing-masing bin (mis. `1–2`, `3–4`, `5`, `6–7`, `8–9`).
+- **Pembaruan `README.md` & penyegaran peta `graphify-out/`**: Menyelaraskan `README.md` dengan arsitektur web TypeScript murni (`web/src/standalone/`), panduan build & uji banding `scripts/verify_js_python_parity.mjs`, struktur `legacy_python/`, serta memperbarui graf pengetahuan kode `graphify-out/`.
+- **Promosi mesin TypeScript & pengarsipan backend Python ke `legacy_python/`**:
+  - Mengarahkan `web/src/api/client.ts` dan `web/vite.config.ts` langsung ke mesin TypeScript murni (`web/dist/` dan `dist/itemetri-web-standalone.zip`, `137.734` bita).
+  - Memindahkan kode Python (`src/`, `tests/`, `packaging/`, `pyproject.toml`, `passenger_wsgi.py`, `requirements-web.txt`) ke `legacy_python/`, sambil mempertahankan `dist/itemetri-desktop.exe` sebagai rilis desktop Windows versi Python terakhir.
+  - Menghapus adaptor Pyodide/CDN (`web/src/workers/pyodideWorker.ts`, `web/src/api/pyodideClient.ts`, `web/.env.pyodide`, `web/vite.standalone.config.ts`, dan `dist/itemetri-web-cpanel.zip`).
+- **Pemisahan dependensi opsional di `pyproject.toml`**: Memindahkan `pywebview>=5.3` ke `[project.optional-dependencies]` grup `desktop` dan menambahkan grup `wsgi` (`a2wsgi>=1.10`) agar server web Linux tetap ringan tanpa dependensi desktop Windows.
+- **Penyelarasan impor paket `itemetri`**: Memperbarui sisa referensi paket `anates` ke `itemetri` pada modul `src/itemetri/`, `tests/`, `packaging/`, dan `pyproject.toml`.
 - **Tombol ekspor per kartu menjadi ikon saja**: Menjadikan tombol salin dan unduh pada tiap kartu hasil (`web/src/components/CardExportBar.tsx`, kelas `.btn-icon-only` pada `web/src/styles/workspace.css`) tampil ringkas sebagai ikon dengan *tooltip* dan `aria-label`, sementara bar ringkasan atas di `web/src/components/ResultsCanvas.tsx` tetap mempertahankan label **Salin Semua** dan **Unduh Laporan**.
 - **Penyatuan jalur simpan berkas**: Mengalihkan seluruh unduhan hasil (`.txt`, `.pdf`, `.png`, `.jpg`) di `web/src/utils/resultExport.ts` dan aksi **Simpan Data** (`.ana`, `.xlsx`, `.csv`) di `web/src/App.tsx` melalui `saveBlobWithDialog`.
-- **Target *build* frontend**: Mengarahkan `build.outDir` di `web/vite.config.ts` ke `../src/itemetri/web/static`.
+- **Penanganan error salin clipboard & pembaruan `USER_MANUAL`**: Menambahkan `try/catch` pada `handleCopy()` di `web/src/components/CardExportBar.tsx`, serta menambahkan panduan penggunaan versi web pada `USER_MANUAL.md` dan `USER_MANUAL.pdf`.
+- **Target *build* frontend (historis sebelum promosi web standalone)**: Sebelumnya mengarahkan `build.outDir` di `web/vite.config.ts` ke `../src/itemetri/web/static`, lalu disederhanakan menjadi `"dist"` untuk aplikasi web mandiri.
 
 ---
 

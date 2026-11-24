@@ -92,7 +92,7 @@ export function MethodNotes({
       <ul>
         <li>
           Kode kualitas <code>++</code>, <code>+</code>, <code>-</code>, <code>--</code>, dan{" "}
-          <code>---</code> mengikuti indeks efektifitas pengecoh ANATES V4 (<code>IP%</code> = rasio
+          <code>---</code> mengikuti indeks efektivitas pengecoh ANATES V4 (<code>IP%</code> = rasio
           frekuensi terhadap ideal <code>(N - benar) / (K - 1)</code>).
         </li>
         <li>
@@ -102,8 +102,8 @@ export function MethodNotes({
           dibanding kelompok <strong>Atas</strong>.
         </li>
         <li>
-          Bila opsi pengecoh justru jauh lebih diminati kelompok Atas dengan Daya Pembeda negatif,
-          periksa ulang kunci jawaban pada baris referensi <code>Ref</code>.
+          Jika opsi pengecoh justru jauh lebih diminati kelompok Atas dengan Daya Pembeda negatif,
+          periksa ulang kunci jawaban pada baris <code>Kunci</code>.
         </li>
       </ul>
     </details>

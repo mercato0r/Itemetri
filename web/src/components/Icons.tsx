@@ -110,6 +110,16 @@ export function WarningIcon({ size = 15 }: IconProps) {
   );
 }
 
+export function HelpCircleIcon({ size = 16 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M6.3 6.2a1.8 1.8 0 0 1 3.4.7c0 1.1-1.7 1.3-1.7 2.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="8" cy="11.6" r="0.85" fill="currentColor" />
+    </svg>
+  );
+}
+
 export function BrandMarkIcon({ size = 20 }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" aria-hidden="true">

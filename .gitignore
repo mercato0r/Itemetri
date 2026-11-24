@@ -1,34 +1,14 @@
-.venv/
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.hypothesis/
-*.egg-info/
+# Dependencies & build outputs
+web/node_modules/
+web/dist/
 dist/
 build/
-web/node_modules/
 
-# Legacy ANATES binaries, assets, and bundled proprietary school samples (kept local for golden parity tests only)
-AnatesV4.exe
-Anates Uraian.exe
-Anates.rav
-ANATESV4.ICO
-AnatesV4.lnk
-UNWISE.EXE
-INSTALL.LOG
-reliabel.txt
-Perbandingan.html
-*.ana
-*.ANA
-legacy_v1/
-ANATES_ANALYSIS.md
+# Archived legacy Python, initial ANATES binaries, samples, and local artifacts
+archive/
 
-# Local agent, docs, manuals, and analysis artifacts (excluded from GitHub)
+# Local agent, docs, and graph artifacts (excluded from Git)
 .agents/
 docs/
 graphify-out/
-ANATES_CALCULATION_NOTATION.md
-USER_MANUAL.md
 USER_MANUAL.pdf

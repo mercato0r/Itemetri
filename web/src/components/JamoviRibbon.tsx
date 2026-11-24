@@ -1,9 +1,14 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { WorksheetSummaryKind } from "../model/worksheet";
+import type { ExportableCardSpec } from "../utils/resultExport";
+import { CardExportBar } from "./CardExportBar";
 import {
   BrandMarkIcon,
+  ChevronDownIcon,
   DownloadIcon,
   FilePlusIcon,
+  HelpCircleIcon,
   MoonIcon,
   PlusIcon,
   RedoIcon,
@@ -27,7 +32,9 @@ interface JamoviRibbonProps {
   activeSubjectCount: number;
   totalRowsCount: number;
   itemCount: number;
+  missingKeyCount: number;
   summaryKind: WorksheetSummaryKind;
+  allResultsSpec: ExportableCardSpec | null;
   canUndo: boolean;
   canRedo: boolean;
   canDeleteRow: boolean;
@@ -48,8 +55,10 @@ interface JamoviRibbonProps {
   onDeleteRow: () => void;
   onDeleteCol: () => void;
   onOpenMerge: () => void;
+  onOpenPretestPosttest: () => void;
   onToggleVarDrawer: () => void;
   onToggleModule: (key: keyof ResultModuleToggles) => void;
+  onStatusMessage?: (msg: string) => void;
 }
 
 export function JamoviRibbon({
@@ -57,7 +66,9 @@ export function JamoviRibbon({
   activeSubjectCount,
   totalRowsCount,
   itemCount,
+  missingKeyCount,
   summaryKind,
+  allResultsSpec,
   canUndo,
   canRedo,
   canDeleteRow,
@@ -78,10 +89,20 @@ export function JamoviRibbon({
   onDeleteRow,
   onDeleteCol,
   onOpenMerge,
+  onOpenPretestPosttest,
   onToggleVarDrawer,
   onToggleModule,
+  onStatusMessage,
 }: JamoviRibbonProps) {
   const toolbarRef = useRef<HTMLDivElement | null>(null);
+  const gridBtnRef = useRef<HTMLButtonElement | null>(null);
+  const gridMenuRef = useRef<HTMLDivElement | null>(null);
+  const toolsBtnRef = useRef<HTMLButtonElement | null>(null);
+  const toolsMenuRef = useRef<HTMLDivElement | null>(null);
+  const [gridMenuOpen, setGridMenuOpen] = useState(false);
+  const [gridMenuPos, setGridMenuPos] = useState<{ top: number; left: number }>({ top: 96, left: 16 });
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const [toolsPos, setToolsPos] = useState<{ top: number; left: number }>({ top: 96, left: 16 });
 
   useEffect(() => {
     const bar = toolbarRef.current;
@@ -137,13 +158,93 @@ export function JamoviRibbon({
     };
   }, []);
 
+  useEffect(() => {
+    if (!gridMenuOpen) return;
+
+    const updatePos = () => {
+      const btn = gridBtnRef.current;
+      if (!btn) return;
+      const rect = btn.getBoundingClientRect();
+      const menuW = 216;
+      const left = Math.max(8, Math.min(rect.left, window.innerWidth - menuW - 8));
+      const top = Math.min(rect.bottom + 4, window.innerHeight - 190);
+      setGridMenuPos({ top, left });
+    };
+
+    updatePos();
+
+    const onPointerDown = (e: PointerEvent) => {
+      const target = e.target as Node | null;
+      if (!target) return;
+      if (gridBtnRef.current?.contains(target) || gridMenuRef.current?.contains(target)) return;
+      setGridMenuOpen(false);
+    };
+
+    const onKeyDown = (e: globalThis.KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setGridMenuOpen(false);
+        gridBtnRef.current?.focus();
+      }
+    };
+
+    window.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("resize", updatePos);
+    return () => {
+      window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("resize", updatePos);
+    };
+  }, [gridMenuOpen]);
+
+  useEffect(() => {
+    if (!toolsOpen) return;
+
+    const updatePos = () => {
+      const btn = toolsBtnRef.current;
+      if (!btn) return;
+      const rect = btn.getBoundingClientRect();
+      const menuW = 220;
+      const left = Math.max(8, Math.min(rect.left, window.innerWidth - menuW - 8));
+      const top = Math.min(rect.bottom + 4, window.innerHeight - 190);
+      setToolsPos({ top, left });
+    };
+
+    updatePos();
+
+    const onPointerDown = (e: PointerEvent) => {
+      const target = e.target as Node | null;
+      if (!target) return;
+      if (toolsBtnRef.current?.contains(target) || toolsMenuRef.current?.contains(target)) return;
+      setToolsOpen(false);
+    };
+
+    const onKeyDown = (e: globalThis.KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setToolsOpen(false);
+        toolsBtnRef.current?.focus();
+      }
+    };
+
+    window.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("resize", updatePos);
+    return () => {
+      window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("resize", updatePos);
+    };
+  }, [toolsOpen]);
+
   const kindLabel =
     summaryKind === "mixed"
       ? "Campuran (PG+Uraian)"
       : summaryKind === "essay"
         ? "Uraian"
         : "Pilihan Ganda";
-  const summaryText = `${sourcePath ?? "Lembar Kerja Bebas"} (${activeSubjectCount}/${totalRowsCount} baris, ${itemCount} butir, ${kindLabel})`;
+  const summaryText = `${sourcePath ?? "Lembar Kerja Baru"} (${activeSubjectCount}/${totalRowsCount} baris, ${itemCount} butir, ${kindLabel})`;
 
   return (
     <header className="no-print">
@@ -165,19 +266,49 @@ export function JamoviRibbon({
           </button>
           <button type="button" className="btn btn-compact" onClick={onOpenImport}>
             <UploadIcon />
-            <span>Impor</span>
+            <span>Impor Excel / CSV</span>
           </button>
           <button
             type="button"
             className="btn btn-compact"
             aria-disabled={activeSubjectCount === 0 ? "true" : undefined}
+            title="Simpan data mentah peserta & kunci dari tabel kiri"
             onClick={() => {
-              if (activeSubjectCount > 0) onOpenSaveData();
+              if (activeSubjectCount > 0) {
+                onOpenSaveData();
+              } else {
+                onStatusMessage?.("Masukkan data peserta terlebih dahulu sebelum menyimpan data.");
+              }
             }}
           >
             <DownloadIcon />
-            <span>Simpan Data</span>
+            <span>Simpan Data Mentah</span>
           </button>
+          {allResultsSpec ? (
+            <CardExportBar
+              spec={allResultsSpec}
+              copyLabel="Salin Laporan"
+              downloadLabel="Ekspor Laporan"
+              iconOnly={false}
+              primaryDownload
+              onStatusMessage={onStatusMessage}
+            />
+          ) : (
+            <button
+              type="button"
+              className="btn btn-compact"
+              aria-disabled="true"
+              title="Tersedia setelah data peserta dan kunci jawaban lengkap"
+              onClick={() =>
+                onStatusMessage?.(
+                  "Lengkapi data peserta dan kunci jawaban terlebih dahulu untuk mengekspor laporan lengkap.",
+                )
+              }
+            >
+              <DownloadIcon />
+              <span>Ekspor Laporan</span>
+            </button>
+          )}
           <button
             type="button"
             className="btn btn-compact"
@@ -189,6 +320,17 @@ export function JamoviRibbon({
             {resolvedScheme === "dark" ? <SunIcon /> : <MoonIcon />}
             <span>{resolvedScheme === "dark" ? "Terang" : "Gelap"}</span>
           </button>
+          <a
+            href="./user_manual/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-compact"
+            aria-label="Buka panduan pengguna lengkap di tab baru"
+            title="Panduan Pengguna & Rumus Perhitungan"
+          >
+            <HelpCircleIcon />
+            <span>Panduan</span>
+          </a>
         </div>
       </div>
 
@@ -196,10 +338,10 @@ export function JamoviRibbon({
         ref={toolbarRef}
         className="action-ribbon"
         role="toolbar"
-        aria-label="Alat penyuntingan data, variabel, dan modul hasil analisis"
+        aria-label="Alat penyuntingan data, kunci soal, dan pengaturan"
         {...({ focusgroup: "toolbar wrap" } as Record<string, string>)}
       >
-        <div className="toolbar-group" role="group" aria-label="Sunting data dan variabel">
+        <div className="toolbar-group" role="group" aria-label="Sunting data dan kunci">
           <button
             type="button"
             className="btn btn-compact"
@@ -222,38 +364,19 @@ export function JamoviRibbon({
             <RedoIcon />
             <span>Redo</span>
           </button>
-          <button type="button" className="btn btn-compact" onClick={onAddRow}>
-            <PlusIcon />
-            <span>Baris</span>
-          </button>
-          <button type="button" className="btn btn-compact" onClick={onAddCol}>
-            <PlusIcon />
-            <span>Butir</span>
-          </button>
           <button
+            ref={gridBtnRef}
             type="button"
             className="btn btn-compact"
-            aria-disabled={!canDeleteRow ? "true" : undefined}
+            aria-haspopup="menu"
+            aria-expanded={gridMenuOpen}
             onClick={() => {
-              if (canDeleteRow) onDeleteRow();
+              setToolsOpen(false);
+              setGridMenuOpen((prev) => !prev);
             }}
           >
-            <TrashIcon />
-            <span>{selectedRowLabel}</span>
-          </button>
-          <button
-            type="button"
-            className="btn btn-compact"
-            aria-disabled={!canDeleteCol ? "true" : undefined}
-            onClick={() => {
-              if (canDeleteCol) onDeleteCol();
-            }}
-          >
-            <TrashIcon />
-            <span>{selectedColLabel}</span>
-          </button>
-          <button type="button" className="btn btn-compact" onClick={onOpenMerge}>
-            <span>Gabung Berkas</span>
+            <span>Baris &amp; Kolom</span>
+            <ChevronDownIcon />
           </button>
           <button
             type="button"
@@ -261,63 +384,158 @@ export function JamoviRibbon({
             aria-pressed={varDrawerOpen ? "true" : "false"}
             onClick={onToggleVarDrawer}
           >
-            <span>Setup Variabel</span>
+            <span>
+              Atur Soal &amp; Kunci{missingKeyCount > 0 ? ` (${missingKeyCount})` : ""}
+            </span>
           </button>
         </div>
 
         <span className="toolbar-sep" role="separator" aria-orientation="vertical" />
 
-        <div className="toolbar-group" role="group" aria-label="Modul hasil analisis dan grafik">
-          <button
-            type="button"
-            className="btn btn-compact toolbar-toggle"
-            aria-pressed={modules.reliability ? "true" : "false"}
-            onClick={() => onToggleModule("reliability")}
-          >
-            <span>Reliabilitas</span>
-          </button>
-          <button
-            type="button"
-            className="btn btn-compact toolbar-toggle"
-            aria-pressed={modules.items ? "true" : "false"}
-            onClick={() => onToggleModule("items")}
-          >
-            <span>Analisis Butir</span>
-          </button>
-          <button
-            type="button"
-            className="btn btn-compact toolbar-toggle"
-            aria-pressed={modules.distractors ? "true" : "false"}
-            onClick={() => onToggleModule("distractors")}
-          >
-            <span>Pengecoh</span>
-          </button>
-          <button
-            type="button"
-            className="btn btn-compact toolbar-toggle"
-            aria-pressed={modules.charts ? "true" : "false"}
-            onClick={() => onToggleModule("charts")}
-          >
-            <span>Grafik</span>
-          </button>
-          <button
-            type="button"
-            className="btn btn-compact toolbar-toggle"
-            aria-pressed={modules.comparison ? "true" : "false"}
-            onClick={() => onToggleModule("comparison")}
-          >
-            <span>Audit Legacy</span>
-          </button>
+        <div className="toolbar-group" role="group" aria-label="Pengaturan dan alat lanjutan">
           <button
             type="button"
             className="btn btn-compact toolbar-toggle"
             aria-pressed={modules.options ? "true" : "false"}
             onClick={() => onToggleModule("options")}
           >
-            <span>Opsi</span>
+            <span>Pengaturan</span>
+          </button>
+          <button
+            ref={toolsBtnRef}
+            type="button"
+            className="btn btn-compact"
+            aria-haspopup="menu"
+            aria-expanded={toolsOpen}
+            onClick={() => {
+              setGridMenuOpen(false);
+              setToolsOpen((prev) => !prev);
+            }}
+          >
+            <span>Alat Lanjutan</span>
+            <ChevronDownIcon />
           </button>
         </div>
       </div>
+
+      {gridMenuOpen &&
+        createPortal(
+          <div
+            ref={gridMenuRef}
+            className="export-menu-popover no-print"
+            role="menu"
+            aria-label="Tambah atau hapus baris dan kolom"
+            style={{ top: `${gridMenuPos.top}px`, left: `${gridMenuPos.left}px`, minInlineSize: "13rem" }}
+          >
+            <button
+              type="button"
+              role="menuitem"
+              className="export-menu-item"
+              onClick={() => {
+                setGridMenuOpen(false);
+                onAddRow();
+              }}
+            >
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem" }}>
+                <PlusIcon />
+                <span>Tambah Baris Peserta</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              className="export-menu-item"
+              onClick={() => {
+                setGridMenuOpen(false);
+                onAddCol();
+              }}
+            >
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem" }}>
+                <PlusIcon />
+                <span>Tambah Butir Soal</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              className="export-menu-item"
+              aria-disabled={!canDeleteRow ? "true" : undefined}
+              onClick={() => {
+                if (!canDeleteRow) return;
+                setGridMenuOpen(false);
+                onDeleteRow();
+              }}
+            >
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem" }}>
+                <TrashIcon />
+                <span>{selectedRowLabel}</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              className="export-menu-item"
+              aria-disabled={!canDeleteCol ? "true" : undefined}
+              onClick={() => {
+                if (!canDeleteCol) return;
+                setGridMenuOpen(false);
+                onDeleteCol();
+              }}
+            >
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem" }}>
+                <TrashIcon />
+                <span>{selectedColLabel}</span>
+              </span>
+            </button>
+          </div>,
+          document.body,
+        )}
+
+      {toolsOpen &&
+        createPortal(
+          <div
+            ref={toolsMenuRef}
+            className="export-menu-popover no-print"
+            role="menu"
+            aria-label="Alat analisis lanjutan"
+            style={{ top: `${toolsPos.top}px`, left: `${toolsPos.left}px`, minInlineSize: "13.5rem" }}
+          >
+            <button
+              type="button"
+              role="menuitem"
+              className="export-menu-item"
+              onClick={() => {
+                setToolsOpen(false);
+                onOpenMerge();
+              }}
+            >
+              <span>Gabung Berkas Ujian</span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              className="export-menu-item"
+              onClick={() => {
+                setToolsOpen(false);
+                onOpenPretestPosttest();
+              }}
+            >
+              <span>Uji Pretest-Posttest</span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              className="export-menu-item"
+              onClick={() => {
+                setToolsOpen(false);
+                onToggleModule("comparison");
+              }}
+            >
+              <span>Audit ANATES Klasik {modules.comparison ? "(Aktif)" : ""}</span>
+            </button>
+          </div>,
+          document.body,
+        )}
     </header>
   );
 }

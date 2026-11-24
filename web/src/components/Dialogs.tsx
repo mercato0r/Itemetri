@@ -144,11 +144,11 @@ export function SaveWorksheetDialog({
   ];
 
   return (
-    <ModalFrame open={open} titleId="save-ws-dlg-title" title="Simpan Data Lembar Kerja" onClose={onClose}>
+    <ModalFrame open={open} titleId="save-ws-dlg-title" title="Simpan Data Mentah Lembar Kerja" onClose={onClose}>
       <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--ink-secondary)" }}>
-        Simpan data peserta dan kunci/skor ideal dari spreadsheet kiri. Untuk menyalin atau mengunduh
-        hasil perhitungan statistik, gunakan tombol <strong>Salin</strong> dan <strong>Unduh</strong>{" "}
-        langsung pada setiap kartu hasil di panel kanan.
+        Menu ini hanya menyimpan data mentah peserta dan kunci/skor ideal dari tabel sebelah kiri.
+        Untuk mengunduh laporan hasil perhitungan lengkap (PDF atau Excel), gunakan tombol{" "}
+        <strong>Ekspor Laporan</strong> pada bilah atas.
       </p>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
@@ -239,7 +239,7 @@ export function MergeDialog({ open, samples, onClose, onMerge }: MergeDialogProp
   };
 
   return (
-    <ModalFrame open={open} titleId="merge-dlg-title" title="Gabung Berkas Ujian (TFGabungDuaFile)" onClose={onClose}>
+    <ModalFrame open={open} titleId="merge-dlg-title" title="Gabung Berkas Ujian" onClose={onClose}>
       <form
         onSubmit={(e) => void handleSubmit(e)}
         style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}
@@ -336,6 +336,171 @@ export function MergeDialog({ open, samples, onClose, onMerge }: MergeDialogProp
         <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)" }}>
           <button type="submit" className="btn btn-primary" disabled={busy}>
             {busy ? "Menggabungkan..." : "Gabung Berkas"}
+          </button>
+        </div>
+      </form>
+    </ModalFrame>
+  );
+}
+
+export interface NewWorksheetParams {
+  kind: "multiple_choice" | "essay";
+  itemCount: number;
+  subjectCount: number;
+  optionCount: number;
+  quickKeys: string;
+  essayIdeal: string;
+}
+
+interface NewWorksheetDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onCreate: (params: NewWorksheetParams) => void;
+}
+
+const DEFAULT_INITIAL_SUBJECT_ROWS = 15;
+
+export function NewWorksheetDialog({ open, onClose, onCreate }: NewWorksheetDialogProps) {
+  const [kind, setKind] = useState<"multiple_choice" | "essay">("multiple_choice");
+  const [itemCount, setItemCount] = useState(10);
+  const [optionCount, setOptionCount] = useState(4);
+  const [quickKeys, setQuickKeys] = useState("");
+  const [essayIdeal, setEssayIdeal] = useState("");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setErrorMsg(null);
+  }, [open]);
+
+  const cleanedKeyCount = quickKeys.replace(/[^A-Za-z]/g, "").length;
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!Number.isInteger(itemCount) || itemCount < 1 || itemCount > 200) {
+      setErrorMsg("Jumlah butir soal harus antara 1 sampai 200.");
+      return;
+    }
+    onCreate({
+      kind,
+      itemCount,
+      subjectCount: DEFAULT_INITIAL_SUBJECT_ROWS,
+      optionCount,
+      quickKeys,
+      essayIdeal,
+    });
+    onClose();
+  };
+
+  return (
+    <ModalFrame open={open} titleId="new-ws-dlg-title" title="Buat Lembar Kerja Baru" onClose={onClose}>
+      <form
+        onSubmit={handleSubmit}
+        style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}
+      >
+        <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--ink-secondary)" }}>
+          Pilih jenis soal dan jumlah butir. Baris peserta tersedia otomatis dan akan bertambah saat
+          Anda mengetik atau menempel (<code>Ctrl+V</code>) data nilai dari Excel.
+        </p>
+
+        <fieldset className="new-ws-fieldset">
+          <legend>Jenis Soal Ujian</legend>
+          <div className="new-ws-kind-row">
+            <label className="option-check">
+              <input
+                type="radio"
+                name="new-ws-kind"
+                checked={kind === "multiple_choice"}
+                onChange={() => setKind("multiple_choice")}
+              />
+              <span>Pilihan Ganda (PG)</span>
+            </label>
+            <label className="option-check">
+              <input
+                type="radio"
+                name="new-ws-kind"
+                checked={kind === "essay"}
+                onChange={() => setKind("essay")}
+              />
+              <span>Uraian / Esai</span>
+            </label>
+          </div>
+        </fieldset>
+
+        <div className="var-drawer-grid">
+          <div className="field-inline">
+            <label htmlFor="new-ws-items">Jumlah butir soal</label>
+            <input
+              id="new-ws-items"
+              type="number"
+              min={1}
+              max={200}
+              value={itemCount}
+              onChange={(e) => setItemCount(Math.max(1, Number(e.target.value) || 1))}
+            />
+          </div>
+
+          {kind === "multiple_choice" && (
+            <div className="field-inline">
+              <label htmlFor="new-ws-options">Jumlah pilihan jawaban</label>
+              <select
+                id="new-ws-options"
+                value={optionCount}
+                onChange={(e) => setOptionCount(Number(e.target.value))}
+              >
+                <option value={3}>3 Pilihan (A - C)</option>
+                <option value={4}>4 Pilihan (A - D)</option>
+                <option value={5}>5 Pilihan (A - E)</option>
+              </select>
+            </div>
+          )}
+        </div>
+
+        {kind === "multiple_choice" ? (
+          <div className="field-inline">
+            <label htmlFor="new-ws-quick-key">
+              Input cepat kunci jawaban (opsional, {Math.min(cleanedKeyCount, itemCount)}/{itemCount} butir terisi)
+            </label>
+            <input
+              id="new-ws-quick-key"
+              type="text"
+              className="mono"
+              placeholder="Contoh: ABCDABCDAB (boleh dikosongkan dulu)"
+              value={quickKeys}
+              onChange={(e) => setQuickKeys(e.target.value.toUpperCase())}
+            />
+          </div>
+        ) : (
+          <div className="field-inline">
+            <label htmlFor="new-ws-essay-ideal">
+              Skor ideal tiap butir (opsional, satu angka atau pisah koma)
+            </label>
+            <input
+              id="new-ws-essay-ideal"
+              type="text"
+              placeholder="Contoh: 10 (untuk semua) atau 10, 15, 20"
+              value={essayIdeal}
+              onChange={(e) => setEssayIdeal(e.target.value)}
+            />
+          </div>
+        )}
+
+        {errorMsg && (
+          <div
+            className="warn-box"
+            role="alert"
+            style={{ background: "var(--err-bg)", color: "var(--err)", borderColor: "var(--err)" }}
+          >
+            {errorMsg}
+          </div>
+        )}
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)" }}>
+          <button type="button" className="btn" onClick={onClose}>
+            Batal
+          </button>
+          <button type="submit" className="btn btn-primary">
+            Buat Lembar Kerja
           </button>
         </div>
       </form>

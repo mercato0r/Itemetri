@@ -1,9 +1,16 @@
 import type { ExamPayload, ScoringWeights } from "../types";
-import { parseEssayCell } from "../utils/clipboard";
+import { parseEssayCell, parseLocalizedNumber } from "../utils/clipboard";
 
 export type VariableKindMode = "auto" | "multiple_choice" | "essay";
 export type EffectiveVariableKind = "multiple_choice" | "essay";
 export type WorksheetSummaryKind = "multiple_choice" | "essay" | "mixed";
+
+export interface BlankWorksheetInit {
+  mode?: VariableKindMode;
+  defaultReference?: string;
+  optionCount?: number;
+  quickKeys?: string;
+}
 
 export interface WorksheetColumn {
   itemNumber: number;
@@ -27,6 +34,7 @@ export interface WorksheetState {
 export interface CompiledWorksheet {
   exam: ExamPayload;
   hasActiveResponses: boolean;
+  missingKeyItemNumbers: number[];
   summaryKind: WorksheetSummaryKind;
   mcCount: number;
   essayCount: number;
@@ -38,10 +46,8 @@ function isSingleAsciiLetter(raw: string): boolean {
 }
 
 function parsePositiveNumber(raw: string): number | null {
-  const trimmed = raw.trim();
-  if (!trimmed) return null;
-  const num = Number(trimmed);
-  if (!Number.isFinite(num) || num <= 0) return null;
+  const num = parseLocalizedNumber(raw);
+  if (num === null || num <= 0) return null;
   return num;
 }
 
@@ -59,18 +65,29 @@ export function resolveColumnKind(
     const cell = (row.cells[colIndex] ?? "").trim();
     if (!cell || cell === "*" || cell === "#") continue;
     if (!isSingleAsciiLetter(cell)) {
-      const parsed = Number(cell);
-      if (Number.isFinite(parsed) && parsed >= 0) return "essay";
+      const parsed = parseLocalizedNumber(cell);
+      if (parsed !== null && parsed >= 0) return "essay";
     }
   }
   return "multiple_choice";
 }
 
-export function createBlankWorksheet(rowCount = 15, colCount = 10): WorksheetState {
+export function createBlankWorksheet(
+  rowCount = 15,
+  colCount = 10,
+  init?: BlankWorksheetInit,
+): WorksheetState {
+  const mode: VariableKindMode = init?.mode ?? "auto";
+  const cleanedMcKeys =
+    init?.quickKeys && mode !== "essay"
+      ? init.quickKeys.replace(/[^A-Za-z]/g, "").toUpperCase()
+      : "";
+  const defaultRef = init?.defaultReference !== undefined ? init.defaultReference.trim() : "";
+
   const columns: WorksheetColumn[] = Array.from({ length: colCount }, (_, idx) => ({
     itemNumber: idx + 1,
-    mode: "auto",
-    referenceValue: "A",
+    mode,
+    referenceValue: cleanedMcKeys ? (cleanedMcKeys[idx] ?? "") : defaultRef,
   }));
   const rows: WorksheetRow[] = Array.from({ length: rowCount }, () => ({
     name: "",
@@ -78,7 +95,7 @@ export function createBlankWorksheet(rowCount = 15, colCount = 10): WorksheetSta
   }));
   return {
     sourcePath: null,
-    optionCount: 4,
+    optionCount: init?.optionCount ?? 4,
     weights: { correct: 1, wrong: 0 },
     columns,
     rows,
@@ -99,7 +116,7 @@ export function getActiveRowCount(rows: WorksheetRow[]): number {
 function normalizeMcKeyChar(ref: string): string {
   const trimmed = ref.trim();
   if (trimmed.length === 1 && /^[A-Za-z]$/.test(trimmed)) {
-    return trimmed;
+    return trimmed.toUpperCase();
   }
   return "A";
 }
@@ -107,7 +124,8 @@ function normalizeMcKeyChar(ref: string): string {
 function normalizeMcResponseChar(raw: string): string {
   const trimmed = raw.trim();
   if (trimmed === "") return "*";
-  return trimmed.slice(0, 1);
+  const ch = trimmed.slice(0, 1);
+  return /^[a-z]$/.test(ch) ? ch.toUpperCase() : ch;
 }
 
 export function worksheetToExamPayload(ws: WorksheetState): CompiledWorksheet {
@@ -116,6 +134,17 @@ export function worksheetToExamPayload(ws: WorksheetState): CompiledWorksheet {
   const effectiveKinds = ws.columns.map((col, j) =>
     resolveColumnKind(col, ws.rows, j),
   );
+  const missingKeyItemNumbers: number[] = [];
+  ws.columns.forEach((col, j) => {
+    const itemNum = col.itemNumber > 0 ? col.itemNumber : j + 1;
+    const isValidRef =
+      effectiveKinds[j] === "multiple_choice"
+        ? isSingleAsciiLetter(col.referenceValue)
+        : parsePositiveNumber(col.referenceValue) !== null;
+    if (!isValidRef) {
+      missingKeyItemNumbers.push(itemNum);
+    }
+  });
   const mcCount = effectiveKinds.filter((k) => k === "multiple_choice").length;
   const essayCount = effectiveKinds.length - mcCount;
   const summaryKind: WorksheetSummaryKind =
@@ -150,6 +179,7 @@ export function worksheetToExamPayload(ws: WorksheetState): CompiledWorksheet {
         mc_subjects: mcSubjects,
       },
       hasActiveResponses,
+      missingKeyItemNumbers,
       summaryKind,
       mcCount,
       essayCount,
@@ -194,6 +224,7 @@ export function worksheetToExamPayload(ws: WorksheetState): CompiledWorksheet {
       essay_subjects: essaySubjects,
     },
     hasActiveResponses,
+    missingKeyItemNumbers,
     summaryKind,
     mcCount,
     essayCount,
@@ -204,11 +235,14 @@ export function worksheetToExamPayload(ws: WorksheetState): CompiledWorksheet {
 export function examPayloadToWorksheet(exam: ExamPayload): WorksheetState {
   if (exam.kind === "multiple_choice") {
     const key = exam.answer_key ?? "A";
-    const cols: WorksheetColumn[] = key.split("").map((ch, idx) => ({
-      itemNumber: idx + 1,
-      mode: isSingleAsciiLetter(ch) ? "auto" : "multiple_choice",
-      referenceValue: ch.toUpperCase(),
-    }));
+    const cols: WorksheetColumn[] = key.split("").map((ch, idx) => {
+      const missing = Boolean(exam.has_missing_keys) || !isSingleAsciiAlphaChar(ch);
+      return {
+        itemNumber: idx + 1,
+        mode: exam.has_missing_keys ? "multiple_choice" : isSingleAsciiLetter(ch) ? "auto" : "multiple_choice",
+        referenceValue: missing ? "" : ch.toUpperCase(),
+      };
+    });
     const rows: WorksheetRow[] = (exam.mc_subjects ?? []).map((subj) => ({
       name: subj.name,
       cells: cols.map((_, j) => {
@@ -229,8 +263,8 @@ export function examPayloadToWorksheet(exam: ExamPayload): WorksheetState {
   const itemNums = exam.item_numbers ?? ideals.map((_, idx) => idx + 1);
   const cols: WorksheetColumn[] = ideals.map((ideal, idx) => ({
     itemNumber: itemNums[idx] ?? idx + 1,
-    mode: "auto",
-    referenceValue: String(ideal),
+    mode: exam.has_missing_keys ? "essay" : "auto",
+    referenceValue: exam.has_missing_keys ? "" : String(ideal),
   }));
   const rows: WorksheetRow[] = (exam.essay_subjects ?? []).map((subj) => ({
     name: subj.name,
@@ -248,11 +282,19 @@ export function examPayloadToWorksheet(exam: ExamPayload): WorksheetState {
   };
 }
 
+function isSingleAsciiAlphaChar(ch: string): boolean {
+  return /^[A-Za-z]$/.test(ch.trim());
+}
+
 export function ensureWorksheetSize(
   ws: WorksheetState,
   minRows: number,
   minCols: number,
 ): WorksheetState {
+  const defaultMode: VariableKindMode =
+    ws.columns.length > 0 && ws.columns.every((c) => c.mode === ws.columns[0]?.mode)
+      ? ws.columns[0]!.mode
+      : "auto";
   const nextCols =
     minCols > ws.columns.length
       ? [
@@ -262,8 +304,8 @@ export function ensureWorksheetSize(
               ws.columns[ws.columns.length - 1]?.itemNumber ?? ws.columns.length;
             return {
               itemNumber: lastNum + offset + 1,
-              mode: "auto" as const,
-              referenceValue: "A",
+              mode: defaultMode,
+              referenceValue: "",
             };
           }),
         ]
@@ -313,10 +355,12 @@ export function setWorksheetCell(
   );
 
   if (rowIdx === -1 && colIdx >= 0) {
+    const trimmed = value.trim();
+    const normalized = isSingleAsciiLetter(trimmed) ? trimmed.toUpperCase() : trimmed;
     return {
       ...expanded,
       columns: expanded.columns.map((c, j) =>
-        j === colIdx ? { ...c, referenceValue: value.trim() } : c,
+        j === colIdx ? { ...c, referenceValue: normalized } : c,
       ),
     };
   }
@@ -329,12 +373,19 @@ export function setWorksheetCell(
   }
 
   if (rowIdx >= 0 && colIdx >= 0) {
+    const colMeta = expanded.columns[colIdx];
+    const kind = colMeta ? resolveColumnKind(colMeta, expanded.rows, colIdx) : "multiple_choice";
+    const trimmed = value.trim();
+    const normalized =
+      kind === "multiple_choice" && isSingleAsciiLetter(trimmed)
+        ? trimmed.toUpperCase()
+        : trimmed;
     return {
       ...expanded,
       rows: expanded.rows.map((r, i) => {
         if (i !== rowIdx) return r;
         const nextCells = [...r.cells];
-        nextCells[colIdx] = value;
+        nextCells[colIdx] = normalized;
         return { ...r, cells: nextCells };
       }),
     };
@@ -368,10 +419,10 @@ export function pasteWorksheetBlock(
       if (targetRow === -1) {
         if (targetCol >= 0 && targetCol < columns.length) {
           const trimmed = cellVal.trim();
-          if (trimmed) {
-            columns[targetCol]!.referenceValue = trimmed;
-            applied += 1;
-          }
+          columns[targetCol]!.referenceValue = isSingleAsciiLetter(trimmed)
+            ? trimmed.toUpperCase()
+            : trimmed;
+          applied += 1;
         }
         return;
       }
@@ -381,13 +432,91 @@ export function pasteWorksheetBlock(
         row.name = cellVal;
         applied += 1;
       } else if (targetCol >= 0) {
-        row.cells[targetCol] = cellVal.trim();
+        const trimmed = cellVal.trim();
+        const colMeta = columns[targetCol];
+        const kind = colMeta ? resolveColumnKind(colMeta, rows, targetCol) : "multiple_choice";
+        row.cells[targetCol] =
+          kind === "multiple_choice" && isSingleAsciiLetter(trimmed)
+            ? trimmed.toUpperCase()
+            : trimmed;
         applied += 1;
       }
     });
   });
 
   return { next: { ...expanded, columns, rows }, applied };
+}
+
+const PASTE_NAME_HEADER_RE =
+  /^(nama(\s+(lengkap|peserta|siswa|mahasiswa))?|peserta|siswa|mahasiswa|subjek|responden|name|no\.?)$/i;
+const PASTE_ITEM_HEADER_RE = /^(?:[qbs]\s*\d+|soal\s*\d+|butir\s*\d+|item\s*\d+|\d+)$/i;
+const PASTE_KEY_MARKER_RE =
+  /^(kunci(\s+jawaban)?|key|answer\s*key|skor\s*ideal|skor_ideal|skor\s*maks|ideal|bobot)$/i;
+
+export function smartPasteWorksheet(
+  ws: WorksheetState,
+  startRow: number,
+  startCol: number,
+  matrix: string[][],
+): { next: WorksheetState; applied: number; smartMapped: boolean } {
+  if (matrix.length >= 2 && (matrix[0]?.length ?? 0) >= 2 && startRow <= 0 && startCol <= 0) {
+    const firstRow = matrix[0] ?? [];
+    const firstCell = (firstRow[0] ?? "").trim();
+    const otherHeaderHits = firstRow
+      .slice(1)
+      .filter((c) => PASTE_ITEM_HEADER_RE.test(c.trim())).length;
+    const hasHeader =
+      PASTE_NAME_HEADER_RE.test(firstCell) ||
+      (otherHeaderHits >= Math.max(1, Math.floor((firstRow.length - 1) * 0.6)));
+
+    let cursor = hasHeader ? 1 : 0;
+    let keyValues: string[] | null = null;
+    const candidateKeyRow = matrix[cursor];
+    if (candidateKeyRow && PASTE_KEY_MARKER_RE.test((candidateKeyRow[0] ?? "").trim())) {
+      keyValues = candidateKeyRow.slice(1);
+      cursor += 1;
+    }
+
+    const dataSlice = matrix.slice(cursor);
+    const hasNameColumn =
+      startCol === -1 ||
+      hasHeader ||
+      keyValues !== null ||
+      (startRow === 0 &&
+        startCol === 0 &&
+        dataSlice.length > 0 &&
+        dataSlice.filter((r) => {
+          const c0 = (r[0] ?? "").trim();
+          return c0.length > 1 && parseLocalizedNumber(c0) === null;
+        }).length >= Math.ceil(dataSlice.length * 0.5));
+
+    if (hasHeader || keyValues !== null || (startRow === 0 && startCol === 0 && hasNameColumn)) {
+      let nextWs = ws;
+      let totalApplied = 0;
+
+      if (keyValues && keyValues.length > 0) {
+        const keyRes = pasteWorksheetBlock(nextWs, -1, 0, [keyValues]);
+        nextWs = keyRes.next;
+        totalApplied += keyRes.applied;
+      }
+
+      if (dataSlice.length > 0) {
+        const dataRes = pasteWorksheetBlock(
+          nextWs,
+          Math.max(0, startRow),
+          hasNameColumn ? -1 : startCol,
+          dataSlice,
+        );
+        nextWs = dataRes.next;
+        totalApplied += dataRes.applied;
+      }
+
+      return { next: nextWs, applied: totalApplied, smartMapped: true };
+    }
+  }
+
+  const fallback = pasteWorksheetBlock(ws, startRow, startCol, matrix);
+  return { ...fallback, smartMapped: false };
 }
 
 export function clearWorksheetRange(

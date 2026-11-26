@@ -28,6 +28,11 @@ Dokumen ini menjadi rujukan teknis untuk memahami arsitektur, menavigasi struktu
   - [5.1 Penanganan Galat di Runtime](#51-penanganan-galat-di-runtime)
   - [5.2 Kegagalan Build, Tes, atau Cache](#52-kegagalan-build-tes-atau-cache)
   - [5.3 Pemulihan Perubahan melalui Git](#53-pemulihan-perubahan-melalui-git)
+- [6. Contracts and Invariants (Kontrak Perilaku dan Invarian Sistem)](#6-contracts-and-invariants-kontrak-perilaku-dan-invarian-sistem)
+  - [6.1 Legacy Parity Contract (`legacy_anates` vs `standard_corrected`)](#61-legacy-parity-contract-legacy_anates-vs-standard_corrected)
+  - [6.2 Kontrak Konversi dan Serialisasi Lembar Campuran (`PG + Uraian`)](#62-kontrak-konversi-dan-serialisasi-lembar-campuran-pg--uraian)
+  - [6.3 Batas Format Berkas, Memori, dan Penggabungan (`mergeExams`)](#63-batas-format-berkas-memori-dan-penggabungan-mergeexams)
+  - [6.4 Konstanta Ambang Tetap (Keputusan Butir dan Pengecoh)](#64-konstanta-ambang-tetap-keputusan-butir-dan-pengecoh)
 
 ---
 
@@ -76,18 +81,23 @@ Alur eksekusi di dalam aplikasi mengikuti urutan berikut:
 
 `WorksheetState` (`web/src/model/worksheet.ts`) memodelkan tabel fleksibel berukuran awal 15 baris x 10 kolom, dengan setiap kolom memiliki `kindMode` (`"auto"`, `"multiple_choice"`, atau `"essay"`), `answerKey`, `idealScore`, dan `indicator`.
 
-Ketika seluruh kolom aktif bertipe Pilihan Ganda, `worksheetToExamPayload()` menghasilkan `ExamPayload` dengan `kind: "multiple_choice"`. Jika terdapat minimal satu kolom bertipe Uraian (termasuk lembar kerja campuran `PG + Uraian`), fungsi ini menyatukan keduanya ke dalam `kind: "essay"`: butir PG dikonversi menjadi skor dikotomi (`1` jika benar, `0` jika salah/kosong) dengan `ideal_scores` bernilai `1`, sementara butir Uraian memakai skor numerik dan skor ideal masing-masing.
+Ketika seluruh kolom aktif bertipe Pilihan Ganda, `worksheetToExamPayload()` menghasilkan `ExamPayload` dengan `kind: "multiple_choice"`. Jika terdapat minimal satu kolom bertipe Uraian (termasuk lembar kerja campuran `PG + Uraian`), fungsi ini menyatukan keduanya ke dalam `kind: "essay"`:
+- Kolom Pilihan Ganda dikonversi menjadi skor numerik dengan `ideal_scores` bernilai `mcIdeal = ws.weights.correct > 0 ? ws.weights.correct : 1`.
+- Jawaban benar bernilai `mcIdeal`, jawaban salah bernilai `wrongCredit = Math.max(0, ws.weights.wrong)` (penalti negatif dibatasi minimal `0`), dan sel kosong (`""`, `"*"`, `"#"`) bernilai `null`.
+- Kolom Uraian tetap memakai skor numerik dan `ideal_scores` masing-masing.
+
+Karena `App.tsx` meneruskan `compiled.exam` langsung ke `exportExamFile()`, aksi **Simpan Data Mentah** pada lembar campuran menyimpan kolom PG sebagai skor terkonversi Uraian, bukan huruf jawaban asli (lihat kontrak detail di Bagian 6.2 dan peringatan UI di `SaveWorksheetDialog`).
 
 ### 1.4 Mesin Psikometri Mode Ganda
 
-`AnalysisOptions.mode` mendukung dua perilaku perhitungan yang dapat dibandingkan secara langsung lewat `compareModes()` (`web/src/standalone/engine/comparison.ts`):
+`AnalysisOptions.mode` mendukung dua perilaku perhitungan yang dapat dibandingkan secara langsung lewat `compareModes()` (`web/src/standalone/engine/comparison.ts`), sementara ukuran kelompok Unggul dan Asor dihitung seragam memakai `bankerRoundGroupSize()` (`upperLower.ts`) pada kedua mode:
 
 - **`standard_corrected` (bawaan):** Menggunakan presisi `float64`, derajat bebas eksak `df = N - 2` pada uji-$t$ korelasi, koreksi Welch-Satterthwaite untuk soal uraian, serta rentang kategori tingkat kesukaran tanpa celah.
-- **`legacy_anates`:** Mereproduksi perilaku historis perangkat lunak ANATES lama (termasuk *banker's rounding* pada kelompok 27% dan tabel nilai kritis korelasi 14 baris `LEGACY_CORRELATION_TABLE`) untuk keperluan audit arsip berkas `.ana`/`.ANA`.
+- **`legacy_anates`:** Mereproduksi perilaku historis perangkat lunak ANATES lama (tabel nilai kritis korelasi 14 baris `LEGACY_CORRELATION_TABLE`, belah dua ganjil-genap PG tertukar tanpa butir ke-$M$ dengan pembulatan `Math.fround`, celah kategori tingkat kesukaran, serta penyebut nominal $n$ pada uji-$t$ Uraian) untuk keperluan audit arsip berkas `.ana`/`.ANA` (lihat Bagian 6.1).
 
 ### 1.5 Kompilasi Panduan Pengguna Terintegrasi
 
-Berkas [USER_MANUAL.md](USER_MANUAL.md) di akar proyek tidak disajikan mentah, melainkan dikompilasi oleh plugin Vite `userManualVitePlugin()` di [buildUserManual.mjs](web/scripts/buildUserManual.mjs). Plugin ini memakai `marked` dan `katex` (khusus di `devDependencies` agar tidak masuk ke bundle React utama) untuk menghasilkan halaman HTML statis mandiri dengan rumus MathML di `web/dist/user_manual/index.html` dan `web/dist/user_manual.html` (siap *Pretty URLs* di Cloudflare Pages).
+Berkas [USER_MANUAL.md](USER_MANUAL.md) di akar proyek tidak disajikan mentah, melainkan dikompilasi oleh plugin Vite `userManualVitePlugin()` di [buildUserManual.mjs](web/scripts/buildUserManual.mjs). Plugin ini memakai `marked` dan `katex` (khusus di `devDependencies` agar tidak masuk ke bundle React utama) serta menjalankan `transformAlerts()` untuk mengonversi blok kutipan GitHub (`> [!NOTE]`, `> [!TIP]`, `> [!IMPORTANT]`, `> [!WARNING]`, `> [!CAUTION]`) menjadi elemen `<aside class="doc-callout ...">`. Keluarannya ditulis sebagai halaman HTML statis mandiri dengan rumus MathML di `web/dist/user_manual/index.html` dan `web/dist/user_manual.html` (siap *Pretty URLs* di Cloudflare Pages). Tautan `? Panduan` pada [JamoviRibbon.tsx](web/src/components/JamoviRibbon.tsx) memakai jalur relatif `href="./user_manual/"` dengan konfigurasi `base: "./"` di [vite.config.ts](web/vite.config.ts) sehingga aman dipasang di subpath (misalnya GitHub Pages project site).
 
 ---
 
@@ -156,19 +166,19 @@ Gunakan tabel ini untuk menemukan berkas yang tepat sebelum mulai membaca atau m
   - `scoring.ts`: Penyekoran PG (`scoreMultipleChoice`), Uraian (`scoreEssay`), serta validasi struktur ujian (`validateMultipleChoiceExam`, `validateEssayExam`).
   - `upperLower.ts`, `discrimination.ts`, `difficulty.ts`, `correlation.ts`, `distractor.ts`, `reliability.ts`: Modul perhitungan CTT yang berdiri sendiri dan bebas ketergantungan DOM.
   - `summary.ts` & `indicators.ts`: Menghasilkan narasi ringkasan eksekutif, statistik distribusi skor, dan ringkasan penguasaan indikator.
-  - `merge.ts`: Menggabungkan dua berkas ujian berdasarkan sumbu peserta atau sumbu butir soal (`mergeExams`), melempar `StandaloneDomainError` jika struktur tidak cocok.
+  - `merge.ts`: Menggabungkan dua berkas ujian berdasarkan sumbu peserta (`axis: "subjects"`) atau sumbu butir soal (`axis: "items"`) lewat `mergeExams()`. Fungsi ini mewajibkan `primary.kind === secondary.kind` serta kesamaan dimensi sumbu penyatu, dan melempar `StandaloneDomainError` jika struktur tidak cocok.
   - `samples.ts`: Menyediakan daftar dan isi sampel simulasi bawaan (`BUILTIN_SAMPLE_LIST`, `getBuiltinSample`).
 
 - **Lapisan I/O (`web/src/standalone/io/`):**
   - `encoding.ts`: Mendeteksi BOM UTF-8, UTF-16LE/BE, atau fallback `windows-1252` (`decodeBytes`), serta mendefinisikan `StandaloneParseError` (status `422`, `code: "parse_error"`).
-  - `xlsxZip.ts`: Pembaca dan penulis `.xlsx` murni menggunakan `DecompressionStream`/`CompressionStream` bawaan Web API tanpa pustaka pihak ketiga eksternal.
-  - `tabular.ts`: Pratinjau pemetaan kolom (`previewTabularBytes`), deteksi otomatis kolom metadata Google Forms/LMS (`Timestamp`, `Email Address`, `Score`, `NISN`, `Kelas`, dll.), pembacaan desimal koma lokal Indonesia, serta pembuatan template `.xlsx`.
-  - `xmlAna.ts`: Pemindai token XML untuk `.ana`/`.ANA` yang mendukung `<![CDATA[...]]>` dan atribut berisi `>`.
+  - `xlsxZip.ts`: Pembaca dan penulis `.xlsx` murni menggunakan `DecompressionStream`/`CompressionStream` bawaan Web API tanpa pustaka pihak ketiga eksternal. Pembaca hanya memproses sheet pertama (`xl/worksheets/sheet1.xml` atau sheet XML pertama yang ditemukan; pemilih multi-sheet belum tersedia) dan menolak berkas `.xls` biner lama.
+  - `tabular.ts`: Pratinjau pemetaan kolom (`previewTabularBytes`), deteksi otomatis kolom metadata Google Forms/LMS (`Timestamp`, `Email Address`, `Score`, `NISN`, `Kelas`, dll.), pembacaan desimal koma lokal Indonesia, sanitasi *formula injection* saat ekspor, serta pembuatan template `.xlsx`.
+  - `xmlAna.ts`: Pemindai token XML untuk `.ana`/`.ANA` yang mendukung `<![CDATA[...]]>` dan atribut berisi `>`, menolak deklarasi `DOCTYPE`/`ENTITY`, serta hanya mendukung skema `file_version="4.0.1"` (Pilihan Ganda) dan `"2.0.1"` (Uraian).
 
 - **Utilitas dan Hooks (`web/src/utils/`, `web/src/hooks/`):**
   - `clipboard.ts`: Normalisasi angka desimal koma Indonesia (`parseLocalizedNumber`, `parseLocalizedNumberList`) dan pemrosesan teks tempel dari Excel.
   - `validation.ts`: Validasi sel secara langsung (`validateMcCell`, `validateEssayCell`) saat pengguna mengetik di spreadsheet.
-  - `fileSave.ts`: Abstraksi penyimpanan berkas `saveBlobWithDialog()` yang memilih dialog desktop `window.pywebview.api.save_file` (jika tersedia), `window.showSaveFilePicker` pada peramban Chromium, atau fallback `<a download>`.
+  - `fileSave.ts`: Abstraksi penyimpanan berkas `saveBlobWithDialog()`. Di dalam repositori ini distribusi resmi berupa aplikasi web statis (`web/dist/`), namun fungsi ini juga menyediakan *hook* jembatan opsional `window.pywebview?.api?.save_file` jika bundel statis disematkan di kontainer WebView eksternal, sebelum beralih ke `window.showSaveFilePicker` (peramban Chromium) atau fallback `<a download>`.
   - `useTheme.ts`: Mengelola preferensi tema (`light`, `dark`, `system`) pada `localStorage["itemetri-color-scheme"]`.
 
 ---
@@ -219,18 +229,19 @@ Server pengembangan Vite akan aktif beserta kompilasi langsung halaman panduan d
 
 ### 4.1 Menjalankan Unit Test (`npm test`)
 
-Jalankan perintah berikut di direktori `web/`:
+Jalankan perintah berikut dari direktori `web/`:
 
 ```powershell
 cd web
 npm test
 ```
 
-Skrip `web/tests/run_tests.mjs` menggunakan `esbuild` untuk mengompilasi modul TypeScript ke `build/web_tests/` lalu menjalankan 15 kasus uji menggunakan `node:test`. Cakupan pengujian meliputi:
-- Model lembar kerja (`createBlankWorksheet`, `pasteWorksheetBlock`, `smartPasteWorksheet`, kompilasi `PG + Uraian`, serta gerbang `missingKeyItemNumbers`).
+Skrip `web/tests/run_tests.mjs` menggunakan `esbuild` untuk mengompilasi modul TypeScript ke `<root-repo>/build/web_tests/` lalu menjalankan seluruh kasus uji otomatis menggunakan `node:test`. Cakupan pengujian meliputi:
+- Model lembar kerja (`createBlankWorksheet`, `pasteWorksheetBlock`, `smartPasteWorksheet`, kontrak penyekoran & bobot pada kompilasi campuran `PG + Uraian`, serta gerbang `missingKeyItemNumbers`).
+- Paritas pembulatan *banker's rounding* ukuran kelompok Unggul-Asor pada mode `standard_corrected` dan `legacy_anates`.
 - Keamanan dan batas I/O (`xlsxZip` menolak `.xls` lama dan ZIP korup, pembatasan referensi kolom ekstrem, `xmlAna` menangani CDATA dan menolak `DOCTYPE`, serta sanitasi *formula injection* pada CSV/XLSX).
 - Pipeline analisis (`executive_summary`, `score_distribution`, `verdict` checks, `indicator_summary`, serta `pretestPosttest` N-Gain dan uji-$t$ berpasangan).
-- Normalisasi papan klip desimal koma Indonesia, pembangkitan template & laporan `.xlsx`, kompilasi `buildUserManualHtml` (MathML KaTeX dan keutuhan seluruh *anchor* internal), serta pemindaian nol *em dash*/*en dash*.
+- Normalisasi papan klip desimal koma Indonesia, pembangkitan template & laporan `.xlsx`, tautan relatif `./user_manual/` di `JamoviRibbon.tsx`, kompilasi `buildUserManualHtml` (MathML KaTeX, transformasi callout `> [!IMPORTANT]`, dan keutuhan seluruh *anchor* internal), serta pemindaian nol *em dash*/*en dash* di kode sumber dan seluruh dokumen utama.
 
 ### 4.2 Pemeriksaan Tipe dan Build Produksi (`npm run build`)
 
@@ -245,7 +256,7 @@ Perintah ini menjalankan `tsc --noEmit` diikuti `vite build`. Pastikan kedua lan
 
 Setelah `npm run build`, jalankan `npm run preview` untuk memverifikasi alur yang tidak terjangkau oleh tes Node:
 1. Uji muat sampel bawaan dan tempel data langsung dari Excel (termasuk angka desimal koma).
-2. Pastikan kartu hasil muncul seketika, tombol `? Panduan` membuka `/user_manual/` tanpa tautan rusak, dan perpindahan tema Terang/Gelap tetap terbaca jelas.
+2. Pastikan kartu hasil muncul seketika, tombol `? Panduan` membuka `./user_manual/` tanpa tautan rusak (termasuk saat dipasang di subpath), dan perpindahan tema Terang/Gelap tetap terbaca jelas.
 3. Periksa tata letak Ribbon pada lebar layar sempit (`375px`) agar tombol tidak saling bertumpuk.
 4. Uji minimal satu aksi ekspor laporan (`.pdf` atau `.xlsx`) untuk memastikan `fileSave.ts` berjalan normal.
 
@@ -268,9 +279,10 @@ Aplikasi memisahkan kegagalan menjadi beberapa lapisan agar mudah dilacak dan di
 ### 5.2 Kegagalan Build, Tes, atau Cache
 
 - **Build gagal pada `userManualVitePlugin`:** Biasanya disebabkan oleh sintaks LaTeX yang tidak valid di `USER_MANUAL.md` (karena `katex` diatur `throwOnError: true` di `buildUserManual.mjs`) atau tautan *anchor* Daftar Isi yang tidak cocok dengan judul bab. Periksa pesan baris galat pada log Vite, perbaiki `USER_MANUAL.md`, lalu jalankan ulang `npm test` dan `npm run build`.
-- **Hasil `npm test` tidak mencerminkan perubahan terbaru atau folder `build/web_tests/` bermasalah:** Hapus direktori sementara `build/web_tests/` dan `web/dist/`, lalu jalankan ulang pengujian:
+- **Hasil `npm test` tidak mencerminkan perubahan terbaru atau folder `<root-repo>/build/web_tests/` bermasalah:** Hapus direktori sementara `build\web_tests\` dan `web\dist\` dari **akar repositori (`<root-repo>`)**, lalu masuk ke `web\` untuk menjalankan ulang pengujian:
 
 ```powershell
+# Jalankan dari akar repositori (<root-repo>)
 Remove-Item -Recurse -Force build\web_tests, web\dist -ErrorAction SilentlyContinue
 cd web
 npm test
@@ -289,3 +301,55 @@ git status
 # Mengembalikan satu berkas ke kondisi commit terakhir
 git checkout -- web/src/path/ke/file.ts
 ```
+
+---
+
+## 6. Contracts and Invariants (Kontrak Perilaku dan Invarian Sistem)
+
+Bagian ini menjadi sumber kebenaran tunggal atas invarian perilaku yang tidak boleh diubah secara diam-diam tanpa memperbarui pengujian kontrak dan `USER_MANUAL.md`.
+
+### 6.1 Legacy Parity Contract (`legacy_anates` vs `standard_corrected`)
+
+| Aspek Perilaku | `standard_corrected` (Bawaan) | `legacy_anates` (ANATES Klasik) | Modul Penanggung Jawab |
+|---|---|---|---|
+| Ukuran kelompok Unggul-Asor ($n$) | `bankerRoundGroupSize` (`roundHalfToEven`, `min(..., N)`) | Sama (`bankerRoundGroupSize`, identik di kedua mode) | `upperLower.ts`, `math.ts` |
+| Belah dua Spearman-Brown PG | Ganjil $1, 3, \dots$ vs genap $2, 4, \dots$ atas seluruh $M$ butir; presisi `float64` | Indeks ganjil dan genap tertukar, butir terakhir $M$ dilewati, `r_xy` dibulatkan dengan `Math.fround` | `reliability.ts` (`computeMcReliability`, `spearmanBrown`) |
+| Belah dua Spearman-Brown Uraian | Seluruh $M$ butir; presisi `float64` | Seluruh $M$ butir; `r_xy` dibulatkan dengan `Math.fround` | `reliability.ts` (`computeEssayReliability`) |
+| Uji signifikansi korelasi ($r$) | Nilai-$p$ Student-$t$ dua arah pada $\text{df} = N - 2$ (hanya $r > 0$) | Pencocokan `LEGACY_CORRELATION_TABLE` 14 baris berdasarkan $M$ butir (`p_value = null`) | `correlation.ts` |
+| Kategori Tingkat Kesukaran ($\text{TK}\%$) | Rentang kontinu tanpa celah; `NaN` menjadi `null` | Celah $(30, 31]$ dan $(70, 71]$ serta `NaN` jatuh ke `"Sangat Mudah"` | `difficulty.ts` (`classifyDifficulty`) |
+| Uji-$t$ kelompok Uraian | Penyebut cacah valid aktual $(n_{U,j}, n_{L,j})$ dengan derajat bebas Welch-Satterthwaite dan nilai-$p$ | Penyebut ukuran kelompok nominal $(n, n)$ tanpa nilai-$p$ (`p_value = null`) | `upperLower.ts` (`computeEssayUpperLower`) |
+| Opsi antarmuka & bawaan korelasi | `use_weighted_score` aktif opsional; `essay_difficulty_scope` default `"all_subjects"`; `useCorrectedItemTotal` otomatis `true` | `use_weighted_score` dipaksa `false`; `essay_difficulty_scope` dipaksa `"upper_lower_2n"`; `useCorrectedItemTotal` otomatis `false` | `OptionsDrawer.tsx`, `pipeline.ts` |
+
+### 6.2 Kontrak Konversi dan Serialisasi Lembar Campuran (`PG + Uraian`)
+
+1. **Kompilasi ke Uraian (`worksheetToExamPayload` di `web/src/model/worksheet.ts`)**:
+   - Jika `mcCount > 0 && essayCount > 0`, `summaryKind` bernilai `"mixed"` dan `exam.kind` dikompilasi menjadi `"essay"`.
+   - Kolom PG memakai skor ideal `mcIdeal = ws.weights.correct > 0 ? ws.weights.correct : 1`.
+   - Jawaban PG benar bernilai `mcIdeal`, jawaban salah bernilai `wrongCredit = Math.max(0, ws.weights.wrong)`, dan sel kosong (`""`, `"*"`, `"#"`) bernilai `null`.
+2. **Serialisasi Simpan Data Mentah:**
+   - `App.tsx` meneruskan `compiled.exam` ke `exportExamFile()` (`web/src/standalone/client.ts`).
+   - Akibatnya, pada lembar kerja campuran, format `.ana`, `.xlsx`, dan `.csv` hasil **Simpan Data Mentah** menyimpan kolom PG sebagai angka skor terkonversi, bukan huruf jawaban asli.
+   - `SaveWorksheetDialog` (`web/src/components/Dialogs.tsx`) wajib menerima `isMixedWorksheet={compiled.summaryKind === "mixed"}` agar menampilkan peringatan eksplisit sebelum pengguna mengunduh berkas.
+
+### 6.3 Batas Format Berkas, Memori, dan Penggabungan (`mergeExams`)
+
+| Invarian / Batas | Nilai / Aturan Kontrak | Lokasi Kode |
+|---|---|---|
+| Batas unggah berkas maksimum | `MAX_UPLOAD_BYTES = 20 * 1024 * 1024` (`20 MB`, HTTP `413` di `ApiError`) | `web/src/standalone/client.ts` |
+| Batas ZIP & dimensi `.xlsx` | `MAX_ZIP_ENTRIES = 256`, `MAX_UNCOMPRESSED_BYTES = 50 * 1024 * 1024` (`50 MB`), `MAX_XLSX_ROWS = 50_000`, `MAX_XLSX_COLS = 5_000`; menolak `.xls` lama | `web/src/standalone/io/xlsxZip.ts` |
+| Pemilihan sheet `.xlsx` | Hanya membaca `xl/worksheets/sheet1.xml` (atau sheet XML pertama yang ditemukan) | `web/src/standalone/io/xlsxZip.ts` |
+| Skema `.ana`/`.ANA` didukung | Hanya `file_version="4.0.1"` (PG) dan `"2.0.1"` (Uraian); menolak `DOCTYPE`/`ENTITY` | `web/src/standalone/io/xmlAna.ts` |
+| Sanitasi *formula injection* ekspor | Prefiks `'` pada sel string yang cocok dengan `FORMULA_PREFIX_RE = /^[=+\-@\t\r]/` pada `.csv` dan `.xlsx` | `web/src/standalone/io/tabular.ts` |
+| Syarat `mergeExams()` | `primary.kind === secondary.kind`; untuk `axis: "subjects"` jumlah butir harus sama; untuk `axis: "items"` jumlah peserta harus sama | `web/src/standalone/engine/merge.ts` |
+
+### 6.4 Konstanta Ambang Tetap (Keputusan Butir dan Pengecoh)
+
+- **Ambang Keputusan Butir (`DEFAULT_THRESHOLDS` di `web/src/standalone/engine/verdict.ts`)**:
+  - `dpAccept = 30.0`, `dpRevise = 20.0`
+  - `tkOkMin = 20.0`, `tkOkMax = 85.0`
+  - `tkExtremeMin = 15.0`, `tkExtremeMax = 90.0`
+  - Status `Terima` memerlukan `DP >= 30%`, `20% <= TK <= 85%`, dan korelasi aktif positif berstatus `"Signifikan"` atau `"Sangat Signifikan"` (tanpa `suspected_miskey`).
+- **Ambang Keberfungsian Pengecoh (`computeDistractors` di `web/src/standalone/engine/distractor.ts`)**:
+  - `minChoiceProportion = 0.02` (proporsi pemilih opsi `freq / n >= 0.02`) disertai syarat `lower_count >= upper_count` (`lCount >= uCount`).
+- **Pita Reliabilitas (`interpretReliability` di `web/src/standalone/engine/reliability.ts`)**:
+  - `>= 0.8` (`Sangat Tinggi`), `>= 0.6` (`Tinggi`), `>= 0.4` (`Cukup`), `>= 0.2` (`Rendah`), `< 0.2` (`Sangat Rendah`).

@@ -55,6 +55,67 @@ test("worksheet: blank dimensions, TSV paste, and mixed PG+Uraian compilation", 
   assert.deepEqual(compiled.exam.ideal_scores, [1, 10]);
   assert.deepEqual(compiled.exam.essay_subjects?.[0]?.scores, [1, 8]);
   assert.deepEqual(compiled.exam.essay_subjects?.[1]?.scores, [0, 6]);
+
+  // Weight contract on mixed PG + Essay worksheet:
+  // 1) negative wrong weight is clamped to 0, ideal score uses positive correct weight
+  const stepWithBlank = wsMod.pasteWorksheetBlock(step2.next, 2, -1, [["Citra", "", "7"]]);
+  const negPenaltyWs = {
+    ...stepWithBlank.next,
+    weights: { correct: 2, wrong: -1 },
+  };
+  const negCompiled = wsMod.worksheetToExamPayload(negPenaltyWs);
+  assert.equal(negCompiled.summaryKind, "mixed");
+  assert.deepEqual(negCompiled.exam.ideal_scores, [2, 10]);
+  assert.deepEqual(negCompiled.exam.essay_subjects?.[0]?.scores, [2, 8]);
+  assert.deepEqual(negCompiled.exam.essay_subjects?.[1]?.scores, [0, 6]);
+  assert.deepEqual(negCompiled.exam.essay_subjects?.[2]?.scores, [null, 7]);
+
+  // 2) positive partial wrong weight is preserved on wrong MC answers
+  const partialWrongWs = {
+    ...stepWithBlank.next,
+    weights: { correct: 2, wrong: 0.5 },
+  };
+  const partialCompiled = wsMod.worksheetToExamPayload(partialWrongWs);
+  assert.deepEqual(partialCompiled.exam.ideal_scores, [2, 10]);
+  assert.deepEqual(partialCompiled.exam.essay_subjects?.[0]?.scores, [2, 8]);
+  assert.deepEqual(partialCompiled.exam.essay_subjects?.[1]?.scores, [0.5, 6]);
+  assert.deepEqual(partialCompiled.exam.essay_subjects?.[2]?.scores, [null, 7]);
+});
+
+test("upperLower banker's rounding group size is identical in standard_corrected and legacy_anates modes", () => {
+  const makeMcExam = (subjectCount) => ({
+    kind: "multiple_choice",
+    source_path: "parity_ul.ana",
+    is_sorted_by_score: false,
+    is_need_recalc: true,
+    answer_key: "ABCD",
+    option_count: 4,
+    weights: { correct: 1, wrong: 0 },
+    mc_subjects: Array.from({ length: subjectCount }, (_, idx) => ({
+      name: `Peserta ${idx + 1}`,
+      responses: idx % 2 === 0 ? "ABCD" : "ABXX",
+      original_index: idx,
+    })),
+  });
+
+  for (const n of [9, 15]) {
+    const exam = makeMcExam(n);
+    for (const pct of [27, 50]) {
+      const stdRes = pipeMod.analyzeExam(exam, {
+        mode: "standard_corrected",
+        upper_lower_percent: pct,
+        use_weighted_score: false,
+        essay_difficulty_scope: null,
+      });
+      const legRes = pipeMod.analyzeExam(exam, {
+        mode: "legacy_anates",
+        upper_lower_percent: pct,
+        use_weighted_score: false,
+        essay_difficulty_scope: null,
+      });
+      assert.equal(stdRes.upper_lower.group_size, legRes.upper_lower.group_size);
+    }
+  }
 });
 
 test("resultExport: escapes HTML and formats APA plain text", () => {
@@ -410,11 +471,13 @@ test("templates & resultExport: generates valid PG/Essay templates and report XL
   assert.ok(reportRows.some((r) => r[0] === "1" && r[1] === "45" && r[2] === "Terima"));
 });
 
-test("antislop R-02 & humanizer-indonesia: zero em-dash or en-dash characters in web source, USER_MANUAL.md, and DESIGN.md", () => {
+test("antislop R-02 & humanizer-indonesia: zero em-dash or en-dash characters in web source, README.md, DEVELOPER_MANUAL.md, USER_MANUAL.md, and DESIGN.md", () => {
   const dirsToScan = [
     path.join(WEB_DIR, "src"),
     path.join(WEB_DIR, "scripts"),
     path.join(WEB_DIR, "index.html"),
+    path.join(ROOT_DIR, "README.md"),
+    path.join(ROOT_DIR, "DEVELOPER_MANUAL.md"),
     path.join(ROOT_DIR, "DESIGN.md"),
     path.join(ROOT_DIR, "USER_MANUAL.md"),
   ];
@@ -437,6 +500,15 @@ test("antislop R-02 & humanizer-indonesia: zero em-dash or en-dash characters in
   assert.deepEqual(hits, []);
 });
 
+test("JamoviRibbon uses subpath-safe relative ./user_manual/ link", () => {
+  const ribbonSrc = fs.readFileSync(
+    path.join(WEB_DIR, "src", "components", "JamoviRibbon.tsx"),
+    "utf8",
+  );
+  assert.ok(ribbonSrc.includes('href="./user_manual/"'));
+  assert.ok(!ribbonSrc.includes('href="/user_manual'));
+});
+
 test("buildUserManualHtml: compiles USER_MANUAL.md with KaTeX MathML, valid anchors, and callouts", async () => {
   const { buildUserManualHtml } = await import("../scripts/buildUserManual.mjs");
   const html = buildUserManualHtml(path.join(ROOT_DIR, "USER_MANUAL.md"));
@@ -445,6 +517,7 @@ test("buildUserManualHtml: compiles USER_MANUAL.md with KaTeX MathML, valid anch
   assert.ok(html.includes("<math"));
   assert.ok(!html.includes("katex-error"));
   assert.ok(html.includes('<aside class="doc-callout is-important" role="note">'));
+  assert.ok(!html.includes("[!IMPORTANT]"));
   assert.ok(!html.includes("\u2014") && !html.includes("\u2013"));
 
   const ids = new Set(Array.from(html.matchAll(/id="([^"]+)"/g), (m) => m[1]));

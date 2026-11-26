@@ -100,12 +100,14 @@ export type WorksheetSaveFormat = "ana" | "xlsx-exam" | "csv-exam";
 
 interface SaveWorksheetDialogProps {
   open: boolean;
+  isMixedWorksheet?: boolean;
   onClose: () => void;
   onSaveWorksheet: (format: WorksheetSaveFormat) => Promise<void>;
 }
 
 export function SaveWorksheetDialog({
   open,
+  isMixedWorksheet = false,
   onClose,
   onSaveWorksheet,
 }: SaveWorksheetDialogProps) {
@@ -150,6 +152,15 @@ export function SaveWorksheetDialog({
         Untuk mengunduh laporan hasil perhitungan lengkap (PDF atau Excel), gunakan tombol{" "}
         <strong>Ekspor Laporan</strong> pada bilah atas.
       </p>
+
+      {isMixedWorksheet && (
+        <div className="warn-box" role="note" style={{ fontSize: "0.8rem" }}>
+          <strong>Lembar kerja campuran (PG + Uraian):</strong> Kolom Pilihan Ganda akan disimpan
+          sebagai angka skor terkonversi (bobot benar untuk jawaban benar, dan nilai minimal 0 untuk
+          jawaban salah) agar seragam dengan struktur Uraian. Salin blok tabel (Ctrl+C) terlebih
+          dahulu jika Anda perlu menyimpan huruf jawaban PG asli sebelum dikonversi.
+        </div>
+      )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
         {options.map((item) => (

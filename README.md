@@ -8,10 +8,10 @@ Menilai kualitas soal ujian sering merepotkan karena data nilai tersebar di spre
 
 Itemetri mendukung pengolahan soal Pilihan Ganda (`PG`), Uraian (`Ur`), dan lembar kerja campuran `PG + Uraian`, lengkap dengan pembobotan PG opsional serta pemetaan indikator atau tujuan pembelajaran.
 
-Untuk menjaga kecocokan dengan kebutuhan evaluasi masa kini maupun arsip lama, mesin hitung CTT tersedia dalam dua mode:
+Untuk menjaga kecocokan dengan kebutuhan evaluasi masa kini maupun arsip lama, ukuran kelompok Unggul-Asor (`27%` atau `50%`) selalu dihitung dengan *banker's rounding* di kedua mode, sedangkan perhitungan statistiknya tersedia dalam dua pilihan:
 
 - Mode `standard_corrected` (bawaan) memakai rumus psikometri baku dengan presisi `float64`, derajat bebas eksak `df = N - 2` pada uji-$t$, koreksi Welch-Satterthwaite untuk soal uraian, dan rentang kategori tingkat kesukaran tanpa celah.
-- Mode `legacy_anates` mereproduksi perilaku hitung historis yang kompatibel dengan berkas `.ana`/`.ANA` (termasuk pembulatan *banker's rounding* 27%, tabel korelasi kritis 14 baris, dan belah dua Spearman-Brown) untuk keperluan audit arsip lama.
+- Mode `legacy_anates` mereproduksi perilaku historis yang kompatibel dengan berkas `.ana`/`.ANA` (belah dua ganjil-genap PG tertukar tanpa butir terakhir dengan pembulatan presisi tunggal, tabel korelasi kritis 14 baris berbasis jumlah butir $M$, celah kategori tingkat kesukaran, serta uji-$t$ Uraian memakai ukuran kelompok nominal $n$) untuk keperluan audit arsip lama (lihat kontrak lengkap di [DEVELOPER_MANUAL.md](DEVELOPER_MANUAL.md#61-legacy-parity-contract-legacy_anates-vs-standard_corrected)).
 
 Dari satu lembar kerja, aplikasi ini menghasilkan:
 
@@ -20,7 +20,7 @@ Dari satu lembar kerja, aplikasi ini menghasilkan:
 - Analisis butir dan pengecoh yang mencakup daya pembeda (`DP%`), tingkat kesukaran (`TK%`), uji-$t$ kelompok unggul-asor uraian, korelasi butir-total mentah (`r`) dan terkoreksi (`r_corr`), indeks pengecoh (`IP%`), rekomendasi keputusan butir (`Terima`, `Revisi`, `Tolak`), serta deteksi dugaan salah kunci.
 - Uji *Pretest-Posttest* memakai *N-Gain* Hake dan uji-$t$ berpasangan.
 
-Di sisi antarmuka, ruang kerja bergaya jamovi menyediakan kanvas spreadsheet `15 x 10` yang dapat langsung disunting atau ditempel dari Excel (`Ctrl+V`), virtualisasi 2D, `Undo`/`Redo`, impor berkas `.ana`/`.ANA`, `.csv`, dan `.xlsx` dengan pratinjau pemetaan, penggabungan dua berkas, serta dua sampel simulasi bawaan (`simulasi-pg-diagnostik` dan `simulasi-uraian`). Data lembar kerja dapat disimpan kembali ke `.ana`, `.xlsx`, atau `.csv`, sedangkan setiap kartu hasil dan grafik dapat disalin ke Word/Docs/Excel atau diunduh sebagai `.txt`, `.pdf`, `.png`, dan `.jpg`.
+Di sisi antarmuka, ruang kerja bergaya jamovi menyediakan kanvas spreadsheet `15 x 10` yang dapat langsung disunting atau ditempel dari Excel (`Ctrl+V`), virtualisasi 2D, `Undo`/`Redo`, impor berkas `.ana`/`.ANA`, `.csv`, dan `.xlsx` dengan pratinjau pemetaan, penggabungan dua berkas, serta dua data simulasi bawaan untuk Pilihan Ganda dan Uraian. Data lembar kerja dapat disimpan kembali ke `.ana`, `.xlsx`, atau `.csv` (khusus lembar campuran `PG + Uraian`, kolom PG disimpan sebagai skor terkonversi Uraian), sedangkan setiap kartu hasil dan grafik dapat disalin ke Word/Docs/Excel atau diunduh sebagai `.pdf`, `.xlsx`, `.txt`, `.png`, dan `.jpg`. Catatan: **Laporan PDF (`.pdf`)** disimpan sebagai halaman gambar siap cetak, sehingga gunakan **Salin Laporan**, `.xlsx`, atau `.txt` apabila memerlukan teks/tabel yang dapat disunting.
 
 ## Cara Menjalankan
 
@@ -61,7 +61,8 @@ Keluaran di `web/dist/` berisi berkas statis murni (termasuk halaman panduan pen
 
 Panduan langkah demi langkah, batasan teknis, dan detail rumus tersedia di dokumen terpisah agar halaman ini tetap ringkas:
 
-- [USER_MANUAL.md](USER_MANUAL.md) memuat panduan penggunaan lengkap beserta notasi matematis.
+- [USER_MANUAL.md](USER_MANUAL.md) memuat panduan penggunaan lengkap, batasan teknis, serta notasi matematis.
+- [DEVELOPER_MANUAL.md](DEVELOPER_MANUAL.md) memuat arsitektur, alur kerja pengembang, serta kontrak invarian sistem.
 - [DESIGN.md](DESIGN.md) mendokumentasikan token desain dan standar antarmuka.
 - [CHANGELOG.md](CHANGELOG.md) mencatat riwayat perubahan tiap rilis.
 - [LICENSE](LICENSE) berisi naskah lisensi MIT.

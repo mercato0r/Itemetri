@@ -11,9 +11,8 @@ Itemetri merupakan perangkat lunak *open source* independen berlisensi MIT yang 
 ## Daftar Isi
 
 - [1. Prasyarat dan Cara Menjalankan](#1-prasyarat-dan-cara-menjalankan)
-  - [1.1 Menggunakan Versi Web di Peramban (Utama)](#11-menggunakan-versi-web-di-peramban-utama)
-  - [1.2 Menjalankan Aplikasi Desktop Windows (`itemetri-desktop.exe`)](#12-menjalankan-aplikasi-desktop-windows-itemetri-desktopexe)
-  - [1.3 Membuka Berkas Langsung dari Terminal (Opsional)](#13-membuka-berkas-langsung-dari-terminal-opsional)
+  - [1.1 Membuka dan Menggunakan Aplikasi di Peramban](#11-membuka-dan-menggunakan-aplikasi-di-peramban)
+  - [1.2 Pemrosesan Lokal dan Penyimpanan Berkas](#12-pemrosesan-lokal-dan-penyimpanan-berkas)
 - [2. Panduan Penggunaan Aplikasi](#2-panduan-penggunaan-aplikasi)
   - [Langkah 1. Memilih Jalur Masuk Data dan Mengisi Lembar Kerja](#langkah-1-memilih-jalur-masuk-data-dan-mengisi-lembar-kerja)
   - [Langkah 2. Mengatur Soal, Kunci, dan Indikator (`Atur Soal & Kunci`)](#langkah-2-mengatur-soal-kunci-dan-indikator-atur-soal--kunci)
@@ -54,38 +53,17 @@ Itemetri merupakan perangkat lunak *open source* independen berlisensi MIT yang 
 
 ## 1. Prasyarat dan Cara Menjalankan
 
-Itemetri tersedia sebagai aplikasi web yang berjalan penuh di peramban, serta paket desktop Windows siap pakai (`itemetri-desktop.exe`) bagi pengguna yang memerlukan peluncur luring berjendela khusus.
+Itemetri adalah aplikasi web mandiri yang berjalan langsung di peramban modern tanpa memerlukan instalasi perangkat lunak tambahan.
 
-### 1.1 Menggunakan Versi Web di Peramban (Utama)
+### 1.1 Membuka dan Menggunakan Aplikasi di Peramban
 
-Versi web Itemetri dirancang ringan agar seluruh pengolahan berjalan langsung di peramban modern (Google Chrome, Microsoft Edge, Mozilla Firefox, atau Safari) dengan respons cepat tanpa perlu instalasi tambahan.
+Anda cukup membuka halaman web Itemetri melalui peramban modern (Google Chrome, Microsoft Edge, Mozilla Firefox, atau Safari). Antarmuka peta alat di bagian atas menyesuaikan susunan tombol secara otomatis pada layar sempit agar tetap nyaman dibaca.
 
-- **Pemrosesan lokal dan seketika**: Pembacaan berkas (`.xlsx`, `.csv`, `.ana`), penyekoran, perhitungan statistik, hingga pembuatan laporan (`.pdf`, `.xlsx`, `.txt`, `.png`, `.jpg`) berlangsung langsung di perangkat Anda tanpa mengirim data ke peladen luar.
-- **Penyimpanan dan pengunduhan berkas**: Pada peramban Chromium desktop (Chrome dan Edge), tombol **Simpan Data Mentah** dan **Ekspor Laporan** memunculkan dialog pemilihan folder simpan; pada peramban lain atau perangkat seluler, berkas otomatis masuk ke folder unduhan bawaan peramban.
-- **Tampilan responsif**: Pita aksi atas menyesuaikan susunan tombol secara otomatis pada layar sempit agar tetap terbaca tanpa tumpang tindih.
+### 1.2 Pemrosesan Lokal dan Penyimpanan Berkas
 
-### 1.2 Menjalankan Aplikasi Desktop Windows (`itemetri-desktop.exe`)
-
-Untuk pemakaian di Windows (64-bit) tanpa membuka peramban secara manual, Anda dapat menjalankan berkas `itemetri-desktop.exe`.
-
-1. Buka folder tempat `itemetri-desktop.exe` tersimpan, lalu klik ganda berkas tersebut.
-2. Jendela **Itemetri - Analisis Kualitas Instrumen Evaluasi Pembelajaran** akan terbuka dengan ukuran standar `1360 x 860` piksel.
-3. Jika Windows SmartScreen menampilkan peringatan saat program dijalankan pertama kali, klik **More info** (*Informasi selengkapnya*) lalu pilih **Run anyway** (*Tetap jalankan*).
-4. Pada versi desktop ini, aksi simpan dan unduh membuka dialog *Simpan Sebagai* asli Windows dan mengingat folder simpan terakhir.
-
-### 1.3 Membuka Berkas Langsung dari Terminal (Opsional)
-
-Pada versi desktop Windows, Anda dapat membuka berkas ujian langsung lewat Command Prompt atau PowerShell di folder aplikasi.
-
-```powershell
-# Menjalankan aplikasi desktop
-.\itemetri-desktop.exe
-
-# Menjalankan aplikasi sambil langsung membuka berkas ujian
-.\itemetri-desktop.exe ujian.ana
-```
-
-Sebelum menutup aplikasi, pastikan lembar kerja sudah disimpan atau laporan analisisnya telah diekspor karena data sesi tidak tersimpan otomatis ke disk.
+- **Pemrosesan lokal dan seketika**: Pembacaan berkas (`.xlsx`, `.csv`, `.ana`), penyekoran, perhitungan statistik, hingga pembuatan laporan (`.pdf`, `.xlsx`, `.txt`, `.png`, `.jpg`) berlangsung langsung di perangkat Anda tanpa mengirim data peserta maupun kunci jawaban ke peladen luar.
+- **Penyimpanan dan pengunduhan berkas**: Pada peramban Chromium desktop (Chrome dan Edge), tombol **Simpan Data Mentah** dan **Ekspor Laporan** memunculkan dialog penyimpanan berkas (*Simpan Sebagai*) untuk memilih nama dan lokasi berkas; pada peramban lain atau perangkat seluler, berkas otomatis masuk ke folder unduhan bawaan peramban.
+- **Sesi sementara**: Isi lembar kerja tidak tersimpan otomatis di peramban saat tab ditutup, sehingga pastikan Anda sudah menyimpan data mentah atau mengekspor laporan sebelum menutup halaman.
 
 ---
 
@@ -98,7 +76,7 @@ Ruang kerja Itemetri terbagi menjadi **Pita Aksi** di bagian atas, **Panel Kiri*
 Saat aplikasi baru dibuka dalam keadaan kosong, panel kanan menampilkan tiga jalur cepat yang dapat Anda pilih sesuai sumber data:
 
 1. **Impor Berkas Excel / CSV / ANA (Utama)**:
-   - Klik **Impor Excel / CSV** pada pita atas atau tombol pilih berkas pada panel kanan. Jika Anda belum memiliki format tabel, unduh terlebih dahulu **Template PG (.xlsx)** atau **Template Uraian (.xlsx)** langsung dari dialog impor atau tampilan awal.
+   - Klik tombol **Impor Excel / CSV** pada pita atas (yang membuka dialog **Impor Data Ujian** untuk berkas `.xlsx`, `.csv`, maupun `.ana`) atau gunakan tombol pilih berkas pada panel kanan. Jika Anda belum memiliki format tabel, unduh terlebih dahulu **Template PG (.xlsx)** atau **Template Uraian (.xlsx)** langsung dari dialog impor atau tampilan awal.
    - Saat berkas `.xlsx` atau `.csv` dipilih, Itemetri langsung melakukan **deteksi ringkas satu baris** untuk mengenali kolom soal, kolom `Nama Lengkap` atau `Peserta`, serta mengabaikan kolom metadata ekspor Google Forms maupun LMS (`Timestamp`, `Email Address`, `Score`, `NISN`, `Kelas`, dan sejenisnya) secara otomatis. Jika perlu meninjau atau mengubah pemetaan secara manual, klik **Sesuaikan Kolom & Baris** untuk membuka pratinjau `6` baris pertama dan `12` kolom pertama, mengatur baris judul, baris kunci/skor ideal, jenis butir (`Otomatis`, `PG`, atau `Uraian`), serta jumlah opsi PG, lalu klik **Impor & Analisis**. Saat dialog ditutup, pilihan berkas sebelumnya otomatis dibersihkan agar siap untuk impor berikutnya.
 2. **Input Manual atau Tempel Langsung dari Excel**:
    - Klik **Lembar Baru** untuk membuka dialog **Buat Lembar Kerja Baru**. Di sana Anda dapat memilih jenis soal (`Pilihan Ganda` atau `Uraian`), jumlah butir, jumlah pilihan jawaban (`2` hingga `26`), serta mengisi **Input Cepat Kunci** (atau **Skor Ideal**) sejak awal sebelum menekan **Buat Lembar Kerja**. Lembar baru otomatis menyediakan `15` baris peserta yang bertambah dinamis saat Anda mengetik atau menempel data.
@@ -122,10 +100,12 @@ Saat aplikasi baru dibuka dalam keadaan kosong, panel kanan menampilkan tiga jal
 
 Secara bawaan, panel **Pengaturan Perhitungan** dalam keadaan tertutup agar **Ringkasan Eksekutif Evaluasi** langsung tampil di posisi paling atas. Klik tombol **Pengaturan** di pita aksi jika Anda ingin menyesuaikan pengaturan berikut:
 
-- **Mode Kompatibilitas**: Pilih **Standar Terkoreksi** (bawaan, otomatis memakai korelasi terkoreksi $r_{\text{corr}}$) untuk perhitungan psikometri baku, atau **ANATES Klasik (Paritas Biner)** (otomatis memakai korelasi mentah $r$) jika Anda perlu mencocokkan angka dengan keluaran ANATES versi lama.
+- **Mode Kompatibilitas**:
+  - **Standar Terkoreksi** (bawaan): memakai perhitungan psikometri baku dan otomatis menyalakan korelasi terkoreksi ($r_{\text{corr}}$) sebagai setelan bawaan.
+  - **ANATES Klasik (Paritas Biner)**: meniru perilaku ANATES versi lama. Saat mode ini dipilih, korelasi otomatis beralih ke korelasi mentah ($r$), opsi **Gunakan Skor Dibobot** dinonaktifkan, dan cakupan tingkat kesukaran Uraian dikunci ke **Kelompok Unggul + Asor (2n)**.
 - **Kelompok Unggul/Asor (%)**: Isi angka `1` sampai `50`, atau klik pintasan **27% (Kelompok Ekstrem)** untuk sampel sedang hingga besar dan **50% (Median Split)** untuk sampel kecil.
 - **KKM / Batas Lulus (opsional)**: Masukkan nilai batas ketuntasan belajar jika Anda ingin ringkasan distribusi skor ikut menghitung jumlah dan persentase peserta yang tuntas. Kosongkan jika tidak diperlukan.
-- **Pengaturan Lanjutan (lipatan opsional)**: Di dalam lipatan opsi penyekoran dan metodologi lanjutan, Anda dapat mengatur **Bobot Jawaban Benar & Salah (PG)** (bawaan `1` dan `0`), mencentang **Gunakan Skor Dibobot**, memilih **Cakupan Tingkat Kesukaran Uraian** (**Seluruh Peserta (N)** atau **Kelompok Unggul + Asor (2n)**), mengubah penggunaan korelasi terkoreksi ($r_{\text{corr}}$), serta mengatur tampilan interpretasi reliabilitas.
+- **Pengaturan Lanjutan (lipatan opsional)**: Di dalam lipatan opsi penyekoran dan metodologi lanjutan, Anda dapat mengatur **Bobot Jawaban Benar & Salah (PG)** (bawaan `1` dan `0`), mencentang **Gunakan Skor Dibobot**, memilih **Cakupan Tingkat Kesukaran Uraian** (**Seluruh Peserta (N)** atau **Kelompok Unggul + Asor (2n)**), mengubah penggunaan korelasi terkoreksi ($r_{\text{corr}}$) secara manual sesuai kebutuhan analisis, serta mengatur tampilan interpretasi reliabilitas. Catatan: jika lembar kerja memadukan butir PG dan Uraian sekaligus, seluruh kolom diproses sebagai Uraian (lihat Bagian 5.1).
 
 ### Langkah 4. Memeriksa Ringkasan Eksekutif, Diagnosis Butir, dan Grafik
 
@@ -152,7 +132,9 @@ Menu **Alat Lanjutan** di pita aksi menghimpun tiga fitur tambahan:
 ### Langkah 6. Menyimpan Data Mentah dan Mengekspor Laporan
 
 1. Klik **Simpan Data Mentah** di bilah atas untuk menyimpan data peserta beserta kunci jawaban/skor ideal dari spreadsheet kiri ke format `.ana`, `.xlsx`, atau `.csv`.
+   - *Perhatian untuk lembar kerja campuran (`PG + Uraian`)*: pada lembar kerja PG murni atau Uraian murni, data disimpan apa adanya. Namun jika lembar kerja memadukan PG dan Uraian sekaligus, kolom PG disimpan sebagai angka skor hasil konversi (bukan huruf jawaban asli). Salin blok tabel (`Ctrl+C`) terlebih dahulu jika Anda perlu menyimpan huruf jawaban aslinya.
 2. Klik **Salin Laporan** di bilah atas untuk menyalin seluruh ringkasan hasil analisis ke papan klip (dalam format tabel rapi untuk Word/Google Docs dan teks bertab untuk Excel), atau klik tombol utama **Ekspor Laporan** untuk mengunduh laporan lengkap ke format `Laporan PDF (.pdf)` multi-halaman A4, `Tabel Excel (.xlsx)`, `Teks / Word (.txt)`, `Gambar PNG (.png)`, atau `Gambar JPG (.jpg)`.
+   - *Catatan format PDF*: berkas **Laporan PDF (.pdf)** disimpan sebagai halaman gambar siap cetak sehingga teksnya tidak dapat disorot atau disalin langsung. Jika Anda membutuhkan teks atau tabel yang dapat disunting, gunakan **Salin Laporan**, **Tabel Excel (.xlsx)**, atau **Teks / Word (.txt)**.
 3. Setiap kartu hasil di panel kanan juga dilengkapi tombol ikon salin dan unduh tersendiri jika Anda hanya membutuhkan satu bagian tertentu.
 
 ---
@@ -166,12 +148,12 @@ Susunan kontrol antarmuka dirinci dalam Tabel 1, sedangkan pintasan papan ketik 
 | Kelompok | Nama Kontrol | Fungsi |
 |---|---|---|
 | Bilah Atas | `Lembar Baru` | Membuka dialog pembuatan lembar kerja baru beserta pilihan jenis soal, jumlah butir, dan kunci cepat |
-| Bilah Atas | `Impor Excel / CSV` | Membuka dialog unggah `.xlsx`, `.csv`, `.ana`, unduhan template Excel, dan data contoh |
-| Bilah Atas | `Simpan Data Mentah` | Menyimpan matriks data peserta dan acuan kunci/ideal dari panel kiri ke `.ana`, `.xlsx`, atau `.csv` |
+| Bilah Atas | `Impor Excel / CSV` | Membuka dialog **Impor Data Ujian** untuk berkas `.xlsx`, `.csv`, `.ana`, unduhan template Excel, dan data contoh |
+| Bilah Atas | `Simpan Data Mentah` | Menyimpan data peserta dan acuan kunci/ideal dari panel kiri ke `.ana`, `.xlsx`, atau `.csv` (pada campuran `PG + Uraian`, kolom PG disimpan sebagai skor terkonversi) |
 | Bilah Atas | `Salin Laporan` | Menyalin seluruh hasil analisis aktif ke papan klip dalam format tabel APA dan teks bertab |
-| Bilah Atas | `Ekspor Laporan` | Mengunduh seluruh laporan analisis ke `.pdf`, `.xlsx`, `.txt`, `.png`, atau `.jpg` |
+| Bilah Atas | `Ekspor Laporan` | Mengunduh seluruh laporan analisis ke `.pdf` (berbasis gambar), `.xlsx`, `.txt`, `.png`, atau `.jpg` |
 | Bilah Atas | `Terang` / `Gelap` | Mengubah skema warna antarmuka dan menyimpan preferensi tema di peramban |
-| Bilah Atas | `? Panduan` | Membuka halaman panduan pengguna lengkap beserta rumus perhitungan (`/user_manual`) di tab baru |
+| Bilah Atas | `? Panduan` | Membuka halaman panduan pengguna lengkap beserta rumus perhitungan (`./user_manual/`) di tab baru |
 | Pita Data | `Undo` / `Redo` | Membatalkan atau mengulangi perubahan sel, pengaturan butir, dan penggabungan hingga `50` langkah |
 | Pita Data | `Baris & Kolom` | Menu dropdown berisi `+ Peserta`, `+ Butir`, `Hapus Baris`, dan `Hapus Butir` |
 | Pita Data | `Atur Soal & Kunci` | Membuka laci pengisian cepat kunci/skor ideal, pengaturan tiap butir, dan tab **Indikator / TP Butir** |
@@ -221,7 +203,7 @@ Panel grafik menyajikan histogram sebaran skor total peserta (dengan rentang sko
 
 ### 4.6 Keamanan Pembacaan Berkas dan Sanitasi Ekspor
 
-Pembaca berkas `.ana` dan `.xlsx` memproses data sepenuhnya di perangkat pengguna tanpa menjalankan skrip luar dan tanpa akses jaringan. Pembaca `.xlsx` menerapkan batas aman ukuran berkas dan dimensi lembar kerja, sedangkan pengekspor `.csv` dan `.xlsx` melindungi sel teks dengan menambahkan tanda kutip tunggal (`'`) pada awal teks yang dimulai dengan karakter `=`, `+`, `-`, `@`, atau tab agar tidak terbaca sebagai rumus berbahaya oleh aplikasi spreadsheet.
+Pembaca berkas `.ana` dan `.xlsx` memproses data sepenuhnya di perangkat pengguna tanpa menjalankan skrip luar dan tanpa akses jaringan. Pembaca `.xlsx` menerapkan batas aman ukuran berkas dan dimensi lembar kerja, sedangkan pengekspor `.csv` dan `.xlsx` melindungi sel teks dengan menambahkan tanda kutip tunggal (`'`) pada awal teks yang dimulai dengan karakter `=`, `+`, `-`, `@`, tab (`\t`), atau *carriage return* (`\r`) agar tidak terbaca sebagai rumus berbahaya oleh aplikasi spreadsheet.
 
 ---
 
@@ -235,7 +217,7 @@ Jika satu lembar kerja memadukan kolom Pilihan Ganda dan kolom Uraian secara ber
 
 ### 5.2 Perilaku Bawaan Mode `ANATES Klasik`
 
-Mode **ANATES Klasik** hanya ditujukan untuk kesesuaian dengan arsip historis `.ana`, sehingga mempertahankan lima perilaku program lama:
+Ukuran kelompok Unggul dan Asor ($n$) selalu dihitung menggunakan pembulatan *banker's rounding* pada kedua mode agar sampel pembanding tetap konsisten saat mengaudit hasil. Selain persamaan tersebut, mode **ANATES Klasik** ditujukan untuk kesesuaian dengan arsip historis `.ana` sehingga mempertahankan lima perilaku program lama:
 
 - Pada belah dua Pilihan Ganda, indeks ganjil dan genap tertukar, butir terakhir $M$ tidak diikutkan, dan $r_{XY}$ dibulatkan ke presisi desimal tunggal sebelum masuk ke rumus Spearman-Brown.
 - Uji signifikansi korelasi membandingkan $r$ terhadap tabel ambang 14 baris menggunakan jumlah butir $M$, bukan $\text{df} = N - 2$, tanpa menghitung nilai $p$.
@@ -294,7 +276,8 @@ Bagian ini merangkum seluruh rumus statistik dan analitik yang digunakan di dala
 | $p_{\text{UL}}$ | Persentase pemotongan kelompok Unggul dan Asor | Rentang $(0, 50]$, bawaan $27{,}0\%$ |
 | $n$ | Ukuran nominal masing-masing kelompok Unggul dan Asor | Hasil pembulatan *banker's rounding* |
 | $U, L$ | Himpunan peserta kelompok Unggul dan Asor | $n$ skor tertinggi dan $n$ skor terendah |
-| $n_{U,j}, n_{L,j}$ | Banyaknya skor Uraian terisi butir $j$ pada $U$ dan $L$ | Penyebut uji-$t$ mode Standar Terkoreksi |
+| $n_{U,j}, n_{L,j}$ | Banyaknya skor Uraian terisi (non-blank) butir $j$ pada $U$ dan $L$ | Dipakai sebagai penyebut uji-$t$ pada mode Standar Terkoreksi |
+| $d_{U,j}, d_{L,j}$ | Penyebut ukuran kelompok pada galat baku gabungan $\text{SE}_{\text{gab},j}$ | $(n_{U,j}, n_{L,j})$ di Standar Terkoreksi, atau $(n, n)$ di ANATES Klasik |
 | $B_{a,j}, B_{b,j}$ | Jumlah jawaban benar PG butir $j$ pada $U$ dan $L$ | Dihitung dari $X_{i,j}$ |
 | $J_j$ | Jumlah seluruh peserta yang menjawab benar butir PG $j$ | $J_j = \sum_{i=1}^N X_{i,j}$ |
 | $\text{Sum}_{U,j}, \text{Sum}_{L,j}$ | Jumlah skor Uraian terisi butir $j$ pada $U$ dan $L$ | Penjumlahan atas $\mathcal{U}_j$ dan $\mathcal{L}_j$ |
@@ -332,20 +315,20 @@ Skor ideal maksimum tes ($S_{\text{ideal,total}}$) bernilai $M$ untuk PG mentah,
 
 ### 6.2 Pemeringkatan, Kelompok Unggul-Asor, dan Uji-$t$ Uraian
 
-Peserta diurutkan menurut skor aktif $Y_i$ menurun, dan skor yang sama dipecah berdasarkan urutan asal $u_i$ menaik agar urutannya tetap konsisten. Ukuran masing-masing kelompok Unggul ($U$) dan Asor ($L$) dihitung dengan pembulatan ke bilangan genap terdekat (*banker's rounding*, $\operatorname{ROUND}_{\text{even}}$).
+Peserta diurutkan menurut skor aktif $Y_i$ menurun, dan skor yang sama dipecah berdasarkan urutan asal $u_i$ menaik agar urutannya tetap konsisten. Pada kedua mode (**Standar Terkoreksi** maupun **ANATES Klasik**), ukuran masing-masing kelompok Unggul ($U$) dan Asor ($L$) dihitung dengan pembulatan ke bilangan genap terdekat (*banker's rounding*, $\operatorname{ROUND}_{\text{even}}$).
 
 $$
 n = \min\!\left(\operatorname{ROUND}_{\text{even}}\!\left(\frac{p_{\text{UL}} \cdot N}{100{,}0}\right),\ N\right)
 $$
 
-Kelompok $U$ mengambil $n$ peserta peringkat teratas dan kelompok $L$ mengambil $n$ peserta peringkat terbawah. Khusus pada butir Uraian, sel kosong dikeluarkan dari himpunan data valid ($\mathcal{U}_j$ dan $\mathcal{L}_j$) sebelum menghitung rata-rata kelompok ($\bar{X}_{U,j}, \bar{X}_{L,j}$) maupun simpangan bakunya ($\text{SD}_{U,j}, \text{SD}_{L,j}$). Galat baku gabungan dan statistik $t_j$ dirumuskan sebagai berikut.
+Kelompok $U$ mengambil $n$ peserta peringkat teratas dan kelompok $L$ mengambil $n$ peserta peringkat terbawah. Khusus pada butir Uraian, sel kosong dikeluarkan dari himpunan data valid ($\mathcal{U}_j$ dan $\mathcal{L}_j$) sebelum menghitung rata-rata kelompok ($\bar{X}_{U,j}, \bar{X}_{L,j}$) maupun simpangan bakunya ($\text{SD}_{U,j}, \text{SD}_{L,j}$). Galat baku gabungan dan statistik $t_j$ memakai penyebut $(d_{U,j}, d_{L,j})$ dengan rumus berikut.
 
 $$
 \text{SE}_{\text{gab},j} = \sqrt{\frac{\text{SD}_{U,j}^2}{d_{U,j}} + \frac{\text{SD}_{L,j}^2}{d_{L,j}}}, \qquad
 t_j = \frac{\bar{X}_{U,j} - \bar{X}_{L,j}}{\text{SE}_{\text{gab},j}}
 $$
 
-Penyebut $(d_{U,j}, d_{L,j})$ memakai cacah valid aktual $(n_{U,j}, n_{L,j})$ pada mode **Standar Terkoreksi**, disertai derajat bebas Welch-Satterthwaite $\nu_{\text{W},j}$ dan nilai-$p$ dua arah $p_{\text{ul},j} = 2 \cdot P(T_{\nu_{\text{W},j}} > |t_j|)$. Sebaliknya, pada mode **ANATES Klasik**, penyebut memakai ukuran kelompok nominal $(n, n)$ tanpa nilai-$p$.
+Pada mode **Standar Terkoreksi**, $(d_{U,j}, d_{L,j})$ bernilai $(n_{U,j}, n_{L,j})$ (cacah skor terisi aktual), disertai derajat bebas Welch-Satterthwaite $\nu_{\text{W},j}$ dan nilai-$p$ dua arah $p_{\text{ul},j} = 2 \cdot P(T_{\nu_{\text{W},j}} > |t_j|)$. Sebaliknya, pada mode **ANATES Klasik**, $(d_{U,j}, d_{L,j})$ bernilai $(n, n)$ (ukuran kelompok nominal) tanpa menghitung nilai-$p$.
 
 ### 6.3 Daya Pembeda ($\text{DP}_j$)
 

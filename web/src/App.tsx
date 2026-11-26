@@ -665,6 +665,7 @@ export function App() {
 
       <SaveWorksheetDialog
         open={saveDataOpen}
+        isMixedWorksheet={compiled.summaryKind === "mixed"}
         onClose={() => setSaveDataOpen(false)}
         onSaveWorksheet={handleSaveWorksheet}
       />
